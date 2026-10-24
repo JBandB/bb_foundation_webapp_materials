@@ -1,0 +1,2560 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projectwizard</title>
+<meta name="description" content="Van idee tot een eigen tool die online staat, in drie delen: voorbereiden, je tool ontwerpen en live zetten. Levert de startprompt voor Claude Code op. Alles blijft in de browser.">
+<meta name="theme-color" content="#2a4740">
+<link rel="icon" type="image/svg+xml" href="brand/sublogo-vierkant-donker.svg">
+<script src="toegang.js"></script>
+<script src="inloggen.js"></script>
+<style>
+/*
+ * De huisstijl van de wizard zelf. De wizard is het werkinstrument rond het template; wat hij
+ * oplevert (configuratie, plan, checklist, startprompt) is neutraal en draagt geen merk.
+ * Kleuren als tokens, licht als enige modus. Lime alleen voor wat nu of actief is.
+ */
+@font-face { font-family: "Space Grotesk"; src: url("brand/fonts/space-grotesk-latin-var.woff2") format("woff2"); font-weight: 300 700; font-display: swap; }
+@font-face { font-family: "Manrope"; src: url("brand/fonts/manrope-latin-var.woff2") format("woff2"); font-weight: 200 800; font-display: swap; }
+:root {
+  --dark: #2a4740;
+  --dark-hover: #223b38;
+  --jade: #2f5954;
+  --lime: #cdf665;
+  --bg: #fffef4;
+  --card: #ffffff;
+  --ink: #2a4740;
+  --ink-soft: #405d56;
+  --muted: #56736b;
+  --soft: #c9d9cd;
+  --line: #859791;
+  --muted-bg: #f4f3e8;
+  --on-dark: #fffef4;
+  --on-dark-soft: #cfe0d7;
+  --rail-line: #3a5c54;
+  --rail-hover: #35564e;
+  --ok: #1f5c3b;
+  --ok-line: #2f7d52;
+  --ok-bg: #e6f2e9;
+  --warn: #6f5117;
+  --warn-line: #8f6a22;
+  --warn-bg: #f8eeda;
+  --error: #8a3626;
+  --error-line: #b04a35;
+  --error-bg: #f8e6e1;
+  --radius: 4px;
+  --radius-card: 8px;
+  --font-display: "Cy Grotesk Key", "Space Grotesk", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-sans: "Open Sauce", "Manrope", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 1rem/1.6 var(--font-sans); -webkit-font-smoothing: antialiased; }
+h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.015em; line-height: 1.2; color: var(--ink); }
+a { color: var(--jade); text-underline-offset: 2px; }
+a:hover { color: var(--dark); }
+.wrap { max-width: 48rem; margin: 0 auto; padding: 0 16px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.skip { position: absolute; left: -10000px; top: 0; }
+.skip:focus { left: 16px; top: 8px; z-index: 10; background: var(--card); color: var(--dark); padding: .5rem .75rem; border-radius: var(--radius); }
+:focus-visible { outline: 3px solid var(--jade); outline-offset: 2px; border-radius: 2px; }
+[tabindex="-1"]:focus { outline: none; }
+
+/* De kop: donkergroen vlak met het witte logo en de drie delen. */
+header.top { background: var(--dark); color: var(--on-dark); }
+header.top :focus-visible { outline-color: var(--lime); }
+.brand-row { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.25rem; padding: 1rem 0 .75rem; }
+.logo { display: block; height: 44px; width: auto; }
+.logo.bi { height: 72px; }
+.wordmark { font-family: var(--font-display); font-weight: 700; font-size: 1.25rem; color: var(--on-dark); }
+.titles { min-width: 0; }
+@media (min-width: 40rem) { .titles { border-left: 1px solid var(--rail-line); padding-left: 1.25rem; } }
+.titles h1 { margin: 0; font-size: 1.25rem; color: var(--on-dark); }
+.titles p { margin: 0; font-size: .9375rem; color: var(--on-dark-soft); }
+nav.parts ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .375rem; }
+nav.parts li { margin: 0; min-width: 0; }
+a.part { display: flex; flex-direction: column; gap: .125rem; height: 100%; min-height: 44px; padding: .625rem .75rem .625rem; color: var(--on-dark-soft); text-decoration: none; border-bottom: 4px solid transparent; border-radius: var(--radius) var(--radius) 0 0; }
+a.part:hover { background: var(--rail-hover); color: var(--on-dark); }
+a.part[aria-current="page"] { background: var(--rail-hover); color: var(--on-dark); border-bottom-color: var(--lime); }
+.part-name { font-family: var(--font-display); font-weight: 600; font-size: 1rem; line-height: 1.25; }
+.part-letter { margin-right: .375rem; }
+a.part[aria-current="page"] .part-letter { color: var(--lime); }
+.part-meta { font-size: .8125rem; line-height: 1.3; }
+.part-time { display: none; }
+@media (min-width: 40rem) { .part-time { display: inline; } }
+@media (max-width: 30rem) { a.part { padding: .5rem .5rem; } .part-name { font-size: .875rem; } .part-letter { display: block; margin: 0; } .part-meta { font-size: .75rem; } }
+.part-bar { height: 4px; margin-top: .375rem; background: var(--rail-line); border-radius: 2px; overflow: hidden; }
+.part-bar span { display: block; height: 100%; background: var(--on-dark-soft); }
+
+/* De stappen van het deel waar je bent. */
+.stepbar { background: var(--card); border-bottom: 1px solid var(--soft); padding: .875rem 0 .75rem; }
+.progress-text { margin: 0 0 .375rem; font-size: .9375rem; color: var(--ink-soft); }
+.bar { height: 6px; background: var(--muted-bg); border-radius: 3px; overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--jade); }
+@media (prefers-reduced-motion: no-preference) { .bar span, .part-bar span { transition: width .2s ease-out; } }
+.steps { list-style: none; margin: .75rem 0 0; padding: 0; display: grid; gap: 4px; }
+.steps li { min-width: 0; display: flex; justify-content: center; align-items: flex-start; margin: 0; }
+.step { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: .25rem; width: 100%; min-height: 0; padding: 2px; background: none; border: 0; color: var(--ink); font-weight: 400; text-align: center; text-decoration: none; box-shadow: none; }
+.step:hover { background: none; }
+.step .num { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border-radius: 50%; border: 2px solid var(--jade); background: var(--card); color: var(--jade); font-weight: 700; font-size: .875rem; }
+.step.done .num { border-color: var(--ok-line); background: var(--ok-bg); color: var(--ok); }
+.step[aria-current="step"] .num { background: var(--dark); border-color: var(--dark); color: var(--lime); }
+.step.off .num { border-color: var(--soft); color: var(--muted); }
+.steps .lbl { overflow-wrap: anywhere; position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (min-width: 48rem) {
+  .steps .lbl { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; font-size: .75rem; line-height: 1.2; color: var(--muted); }
+  .step[aria-current="step"] .lbl { color: var(--ink); font-weight: 700; }
+}
+
+main.wrap { padding-top: 2rem; padding-bottom: 3rem; }
+h2 { font-size: 1.625rem; margin: 0 0 .5rem; }
+h3 { font-size: 1.1875rem; margin: 1.75rem 0 .5rem; }
+h4 { font-size: 1rem; margin: 1rem 0 .25rem; }
+p { margin: .5rem 0; }
+ul, ol { padding-left: 1.25rem; }
+li { margin: .25rem 0; }
+.lead { font-size: 1.0625rem; color: var(--ink-soft); }
+code { font-family: var(--font-mono); font-size: .875em; overflow-wrap: anywhere; background: var(--muted-bg); padding: 0 .25em; border-radius: 3px; }
+pre { margin: .5rem 0; padding: .625rem .75rem; background: var(--muted-bg); border: 1px solid var(--soft); border-radius: var(--radius); white-space: pre-wrap; overflow-wrap: anywhere; }
+pre code { background: none; padding: 0; font-size: .875rem; }
+label, legend { display: block; font-weight: 600; }
+fieldset { border: 0; margin: 1.25rem 0; padding: 0; min-width: 0; }
+legend { padding: 0; margin-bottom: .25rem; }
+.box { background: var(--card); border: 1px solid var(--soft); border-radius: var(--radius-card); padding: .75rem 1rem 1rem; margin: 1rem 0; }
+.box > h3:first-child, .box > h4:first-child { margin-top: .25rem; }
+fieldset.box > legend { padding: 0 .25rem; font-size: 1.0625rem; font-family: var(--font-display); }
+.field { margin: 1rem 0; min-width: 0; }
+.hint { color: var(--muted); font-size: .9375rem; margin: .125rem 0 .375rem; }
+.hint .ex { font-weight: 600; }
+input[type="text"], textarea { display: block; width: 100%; font: inherit; color: inherit; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: .5rem .625rem; min-height: 44px; }
+textarea { resize: vertical; }
+textarea#prompt { font-family: var(--font-mono); font-size: .8125rem; }
+input[aria-invalid="true"], textarea[aria-invalid="true"] { border: 2px solid var(--error-line); }
+.error { color: var(--error); font-weight: 600; margin: .25rem 0 0; }
+.error:empty { display: none; }
+.choice { display: flex; gap: .625rem; align-items: flex-start; margin: .5rem 0; }
+.choice input { width: 1.25rem; height: 1.25rem; margin: .2rem 0 0; flex: none; accent-color: var(--dark); }
+.choice label { font-weight: 400; }
+.choice input[aria-disabled="true"] { cursor: not-allowed; }
+.choice .hint { margin: 0; }
+.sub-block { margin: .25rem 0 .75rem 1.75rem; padding-left: .75rem; border-left: 3px solid var(--soft); }
+
+button, a.button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; font: inherit; font-family: var(--font-display); font-weight: 600; cursor: pointer; min-height: 44px; padding: .5rem 1rem; border-radius: var(--radius); border: 1px solid var(--dark); background: var(--card); color: var(--dark); text-decoration: none; }
+button:hover, a.button:hover { background: var(--muted-bg); color: var(--dark); }
+button.primary, a.button.primary { background: var(--dark); border-color: var(--dark); color: var(--on-dark); box-shadow: inset 0 -3px 0 var(--lime); }
+button.primary:hover, a.button.primary:hover { background: var(--dark-hover); color: var(--on-dark); }
+button.big { font-size: 1.125rem; min-height: 56px; padding: .75rem 1.5rem; }
+@media (max-width: 30rem) { button.big { width: 100%; } }
+button.danger { border-color: var(--error-line); color: var(--error); }
+button.small { min-height: 36px; padding: .25rem .75rem; font-size: .875rem; }
+@media (prefers-reduced-motion: no-preference) { button, a.button, a.part { transition: background-color .12s ease-out; } }
+.actions { display: flex; flex-wrap: wrap; gap: .75rem; justify-content: space-between; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--soft); }
+.row { display: flex; flex-wrap: wrap; gap: .5rem; margin: .5rem 0; }
+.note { border-left: 4px solid var(--jade); background: var(--card); padding: .5rem .75rem; border-radius: var(--radius); }
+.note.warn { border-color: var(--warn-line); background: var(--warn-bg); color: var(--warn); }
+.note.bad { border-color: var(--error-line); background: var(--error-bg); color: var(--error); }
+.note.good { border-color: var(--ok-line); background: var(--ok-bg); color: var(--ok); }
+.example { border: 1px dashed var(--line); border-radius: var(--radius); padding: .5rem .75rem; background: var(--card); }
+.summary { border: 2px solid var(--error-line); background: var(--card); border-radius: var(--radius-card); padding: .25rem 1rem .75rem; margin: 1rem 0; }
+.summary h3 { margin-top: .75rem; color: var(--error); }
+.summary a { color: var(--error); font-weight: 600; }
+.pair, .trio { display: grid; gap: 0 1rem; }
+@media (min-width: 40rem) { .pair { grid-template-columns: 1fr 1fr; } .trio { grid-template-columns: 1fr 1fr 1fr; } }
+.reserved li { color: var(--muted); }
+.badge { display: inline-block; margin-left: .5rem; padding: 0 .5rem; border: 1px solid var(--line); border-radius: 999px; font-size: .8125rem; color: var(--muted); }
+.colour-inputs { display: flex; gap: .5rem; align-items: stretch; }
+input[type="color"] { flex: none; width: 3.25rem; min-height: 44px; padding: 2px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); cursor: pointer; }
+.previews { display: grid; gap: 1rem; margin: .5rem 0 1rem; }
+@media (min-width: 40rem) { .previews { grid-template-columns: 1fr 1fr; } }
+.pv { border: 1px solid var(--soft); border-radius: 8px; overflow: hidden; background: var(--pv-bg); color: var(--pv-ink); font-size: .9375rem; }
+.pv p { margin: .25rem 0; }
+.pv-rail { display: flex; align-items: center; min-height: 2.75rem; padding: .5rem .75rem; background: var(--pv-rail); color: #ffffff; font-weight: 700; overflow-wrap: anywhere; }
+.pv-rail img { max-height: 1.75rem; max-width: 10rem; }
+.pv-body { padding: .75rem; }
+.pv-mode { font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.pv-card { background: var(--pv-card); border: 1px solid var(--pv-border); border-radius: var(--pv-rc); padding: .75rem; margin-top: .5rem; }
+.pv-title { font-weight: 700; }
+.pv-accent { color: var(--pv-accent); font-weight: 700; }
+.pv-status { display: flex; flex-wrap: wrap; gap: .25rem .75rem; font-weight: 600; }
+.pv-btn { display: inline-block; margin-top: .5rem; padding: .375rem .875rem; border-radius: var(--pv-r); background: var(--pv-primary); color: var(--pv-on); font-weight: 600; }
+.contrast { list-style: none; padding: 0; }
+.contrast li { background: var(--card); border: 1px solid var(--soft); border-left: 4px solid var(--ok-line); border-radius: var(--radius); padding: .5rem .75rem; margin: .5rem 0; }
+.contrast li.fail { border-left-color: var(--error-line); }
+.contrast span { display: block; }
+.contrast .pair-name { font-weight: 600; }
+.contrast .fix { margin-top: .25rem; }
+.contrast button { margin-top: .375rem; }
+dl.facts { display: grid; grid-template-columns: minmax(0, 11rem) minmax(0, 1fr); gap: .375rem 1rem; margin: .5rem 0; }
+dl.facts dt { font-weight: 600; }
+dl.facts dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 30rem) { dl.facts { grid-template-columns: minmax(0, 1fr); gap: 0; } dl.facts dd { margin-bottom: .5rem; } }
+.swatches { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
+.sw { display: inline-block; width: 1rem; height: 1rem; margin-right: .375rem; border: 1px solid var(--line); border-radius: 3px; vertical-align: -.15em; }
+.downloads { list-style: none; padding: 0; }
+.downloads li { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .75rem; margin: .5rem 0; }
+.downloads .hint { margin: 0; }
+details { margin: 1rem 0; }
+details > summary { cursor: pointer; font-family: var(--font-display); font-weight: 600; min-height: 44px; display: flex; align-items: center; gap: .5rem; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before { content: "\25B8"; color: var(--jade); }
+details[open] > summary::before { content: "\25BE"; }
+details.reserve { background: var(--card); border: 1px solid var(--soft); border-radius: var(--radius-card); padding: 0 1rem; }
+details.reserve[open] { padding-bottom: .75rem; }
+.prompt-card { background: var(--card); border: 1px solid var(--soft); border-left: 4px solid var(--dark); border-radius: var(--radius-card); padding: 1rem 1.25rem 1.25rem; margin: 1rem 0; }
+.prompt-card h3 { margin-top: .25rem; }
+.copy-status { font-weight: 600; color: var(--ok); margin: .5rem 0 0; }
+.copy-status:empty { margin: 0; }
+.copy-status.bad { color: var(--error); }
+
+/* Een gidsstap in deel A en C. */
+dl.trouble { margin: .5rem 0; }
+dl.trouble dt { font-weight: 600; margin-top: .75rem; }
+dl.trouble dd { margin: .125rem 0 0; padding-left: .75rem; border-left: 3px solid var(--soft); }
+.services { display: grid; gap: .75rem; }
+@media (min-width: 40rem) { .services { grid-template-columns: 1fr 1fr; } }
+.services .box { margin: 0; }
+.services h4 { margin-top: 0; }
+.done-box { display: flex; gap: .625rem; align-items: flex-start; background: var(--card); border: 2px solid var(--soft); border-radius: var(--radius-card); padding: .75rem 1rem; margin: 2rem 0 0; }
+.done-box.checked { border-color: var(--ok-line); background: var(--ok-bg); }
+.done-box input { width: 1.25rem; height: 1.25rem; margin: .2rem 0 0; flex: none; accent-color: var(--ok-line); }
+.done-box .hint { margin: 0; }
+.cards { display: grid; gap: .75rem; margin: 1rem 0; }
+@media (min-width: 40rem) { .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.cards .box { margin: 0; display: flex; flex-direction: column; gap: .25rem; }
+.cards .box h3 { margin: .25rem 0 0; font-size: 1.0625rem; }
+.cards .box p { margin: 0; }
+.cards .box .row { margin-top: auto; padding-top: .5rem; }
+.overview { list-style: none; padding: 0; }
+.overview li { display: flex; gap: .5rem; align-items: baseline; }
+.overview .mark { flex: none; width: 1.25rem; font-weight: 700; color: var(--ok); }
+
+/* Schermafbeeldingen met kaders: de kaders zijn HTML bovenop het plaatje en schalen mee. */
+figure.shot { margin: 1rem 0 1.5rem; }
+.shot-frame { position: relative; }
+.shot-frame img { display: block; width: 100%; height: auto; border: 1px solid var(--soft); border-radius: var(--radius-card); background: var(--card); }
+.kader { position: absolute; border: 3px solid var(--dark); border-radius: var(--radius); box-shadow: 0 0 0 3px var(--lime); pointer-events: none; }
+.kader-label { position: absolute; left: -3px; bottom: calc(100% + 11px); padding: .1875rem .5rem; border-radius: var(--radius); background: var(--dark); color: var(--on-dark); font: 600 .8125rem/1.3 var(--font-sans); white-space: nowrap; }
+.kader-label::after { content: ""; position: absolute; left: 12px; top: 100%; border: 7px solid transparent; border-top-color: var(--dark); }
+.kader.below .kader-label { bottom: auto; top: calc(100% + 11px); }
+.kader.below .kader-label::after { top: auto; bottom: 100%; border-top-color: transparent; border-bottom-color: var(--dark); }
+.kader.right .kader-label { left: auto; right: -3px; }
+.kader.right .kader-label::after { left: auto; right: 12px; }
+@media (max-width: 30rem) { .kader-label { font-size: .75rem; } }
+@media (prefers-reduced-motion: no-preference) {
+  .kader { animation: kader-pulse 1.4s ease-out 2; }
+  @keyframes kader-pulse { from { box-shadow: 0 0 0 3px var(--lime), 0 0 0 12px rgba(205, 246, 101, .5); } to { box-shadow: 0 0 0 3px var(--lime), 0 0 0 12px rgba(205, 246, 101, 0); } }
+}
+figure.shot figcaption { margin-top: .375rem; font-size: .875rem; color: var(--muted); }
+.shot-todo { display: flex; flex-direction: column; gap: .25rem; margin: 1rem 0 1.5rem; padding: .875rem 1rem; border: 1px solid var(--soft); border-left: 4px solid var(--jade, #2f5954); border-radius: var(--radius-card); background: var(--muted-bg); color: var(--ink-soft); font-size: .9375rem; }
+.shot-todo ol { margin: .25rem 0 .25rem 1.25rem; padding: 0; color: var(--ink); }
+.shot-todo li { margin: .125rem 0; }
+.shot-todo strong { font-family: var(--font-display); color: var(--ink); }
+
+/* Een label naar dag 2, op plekken waar de vraag al opkomt. */
+.dag2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .625rem; margin: 1.25rem 0; padding: .625rem .875rem; background: var(--card); border: 1px solid var(--soft); border-left: 4px solid var(--dark); border-radius: var(--radius-card); }
+.dag2-pill { flex: none; font-family: var(--font-display); font-weight: 700; font-size: .8125rem; color: var(--lime); background: var(--dark); border-radius: 999px; padding: .0625rem .5rem; }
+.dag2 a { font-weight: 600; }
+
+footer.foot { border-top: 1px solid var(--soft); padding: 1rem 0 2rem; color: var(--muted); font-size: .875rem; }
+footer.foot p { margin: .25rem 0; }
+</style>
+<script type="application/json" id="schermen">
+{
+  "uitleg": "De schermafbeeldingen bij de stappen van de wizard. Bron van wizard/index.html: ci/schermen-opnemen.mjs neemt ze op en bedt deze lijst daar in. Kaders in procenten van het beeld: x en y linksboven, b breed, h hoog.",
+  "schermen": [
+    {
+      "id": "github-aanmelden",
+      "opname": "openbaar",
+      "bestand": null,
+      "alt": "De aanmeldpagina van GitHub, met het veld voor je e-mailadres.",
+      "standVan": null,
+      "uitleg": "https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github",
+      "kaders": [],
+      "klikpad": [
+        "Ga naar github.com/signup.",
+        "Vul je e-mailadres in en klik Continue.",
+        "Kies een wachtwoord en een gebruikersnaam, en klik telkens Continue.",
+        "Los de controlepuzzel op en vul de code in die GitHub je mailt.",
+        "Kies het gratis plan (Free)."
+      ]
+    },
+    {
+      "id": "vercel-aanmelden",
+      "opname": "openbaar",
+      "bestand": "img/vercel-aanmelden.webp",
+      "alt": "De aanmeldpagina van Vercel, waar je het Hobby-plan kiest.",
+      "standVan": "2026-10-15",
+      "uitleg": "https://vercel.com/docs/accounts/create-an-account",
+      "kaders": [
+        {
+          "x": 34.3,
+          "y": 45.3,
+          "b": 31.4,
+          "h": 6.5,
+          "label": "Continue with GitHub"
+        }
+      ]
+    },
+    {
+      "id": "git-windows",
+      "opname": "openbaar",
+      "bestand": "img/git-windows.webp",
+      "alt": "De downloadpagina van Git voor Windows.",
+      "standVan": "2026-10-15",
+      "uitleg": "https://git-scm.com/book/en/v2/Getting-Started-Installing-Git",
+      "kaders": [
+        {
+          "x": 34.6,
+          "y": 42.8,
+          "b": 16.3,
+          "h": 3.5,
+          "label": "Git for Windows/x64 Setup"
+        }
+      ]
+    },
+    {
+      "id": "nodejs-download",
+      "opname": "openbaar",
+      "bestand": "img/nodejs-download.webp",
+      "alt": "De downloadpagina van Node.js, met de Windows Installer.",
+      "standVan": "2026-10-15",
+      "uitleg": "https://nodejs.org/en/download",
+      "kaders": [
+        {
+          "x": 8.3,
+          "y": 93.1,
+          "b": 18.4,
+          "h": 6.3,
+          "label": "Windows Installer (.msi)"
+        }
+      ]
+    },
+    {
+      "id": "vscode-download",
+      "opname": "openbaar",
+      "bestand": "img/vscode-download.webp",
+      "alt": "De downloadpagina van VS Code, met de knop voor Windows.",
+      "standVan": "2026-10-15",
+      "uitleg": "https://code.visualstudio.com/docs/setup/windows",
+      "kaders": [
+        {
+          "x": 7.3,
+          "y": 64,
+          "b": 24.8,
+          "h": 7.3,
+          "label": "Download voor Windows"
+        }
+      ]
+    },
+    {
+      "id": "claude-code-installeren",
+      "opname": "openbaar",
+      "bestand": "img/claude-code-installeren.webp",
+      "alt": "De uitleg van Anthropic over de extensie Claude Code in VS Code.",
+      "standVan": "2026-10-15",
+      "uitleg": "https://code.claude.com/docs/en/vs-code",
+      "kaders": [
+        {
+          "x": 30.4,
+          "y": 31.7,
+          "b": 12,
+          "h": 4.1,
+          "label": "Install for VS Code"
+        }
+      ]
+    },
+    {
+      "id": "github-use-template",
+      "opname": "ingelogd",
+      "bestand": null,
+      "alt": "De repo van het template op GitHub, met de knop Use this template.",
+      "standVan": null,
+      "uitleg": "https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template",
+      "kaders": [],
+      "klikpad": [
+        "Open github.com/JBandB/bb_foundation_webapp.",
+        "Klik rechtsboven op de groene knop Use this template, dan Create a new repository.",
+        "Kies bij Owner je eigen account en geef de repo de naam van je tool.",
+        "Zet hem op Private.",
+        "Klik Create repository."
+      ]
+    },
+    {
+      "id": "vscode-clone",
+      "opname": "handmatig",
+      "bestand": null,
+      "alt": "VS Code met de opdracht Git: Clone en de keuze Clone from GitHub.",
+      "standVan": null,
+      "uitleg": "https://code.visualstudio.com/docs/sourcecontrol/intro-to-git#_clone-a-repository-locally",
+      "kaders": [],
+      "klikpad": [
+        "Open VS Code.",
+        "Druk Ctrl+Shift+P, typ Git: Clone en druk Enter.",
+        "Kies Clone from GitHub. Log in bij GitHub als VS Code erom vraagt.",
+        "Kies je nieuwe repo uit de lijst.",
+        "Kies je werkmap buiten OneDrive, en klik Open als VS Code vraagt of je de repo wilt openen."
+      ]
+    },
+    {
+      "id": "claude-paneel",
+      "opname": "handmatig",
+      "bestand": null,
+      "alt": "Het Claude-paneel in VS Code, waarin je de startprompt plakt.",
+      "standVan": null,
+      "uitleg": "https://code.claude.com/docs/en/vs-code",
+      "kaders": [],
+      "klikpad": [
+        "Klik rechtsboven in VS Code op het oranje sterretje: het Claude-paneel gaat open.",
+        "Klik in het invoerveld onderaan het paneel.",
+        "Plak de startprompt met Ctrl+V en druk Enter."
+      ]
+    },
+    {
+      "id": "vscode-commit-sync",
+      "opname": "handmatig",
+      "bestand": null,
+      "alt": "Source Control in VS Code, met het veld voor de boodschap en de knop Commit.",
+      "standVan": null,
+      "uitleg": "https://code.visualstudio.com/docs/sourcecontrol/overview",
+      "kaders": [],
+      "klikpad": [
+        "Klik links op het icoon met de vertakking: Source Control.",
+        "Typ bovenaan een korte boodschap, bijvoorbeeld docs: projectplan uit de wizard.",
+        "Klik Commit. Vraagt VS Code of alle wijzigingen mee moeten: klik Yes.",
+        "Klik Sync Changes."
+      ]
+    },
+    {
+      "id": "vercel-nieuw-project",
+      "opname": "ingelogd",
+      "bestand": null,
+      "alt": "Vercel, Add New Project, met de lijst van je repo's en de knop Import.",
+      "standVan": null,
+      "uitleg": "https://vercel.com/docs/getting-started-with-vercel/import",
+      "kaders": [],
+      "klikpad": [
+        "Ga naar vercel.com en log in met GitHub.",
+        "Klik rechtsboven op Add New, dan Project.",
+        "Klik bij je repo op Import. Staat hij er niet bij: klik Adjust GitHub App Permissions en geef Vercel toegang tot die repo.",
+        "Laat de instellingen staan en klik Deploy."
+      ]
+    },
+    {
+      "id": "vercel-storage-neon",
+      "opname": "ingelogd",
+      "bestand": null,
+      "alt": "Het tabblad Storage van een Vercel-project, met Create Database en Neon.",
+      "standVan": null,
+      "uitleg": "https://vercel.com/marketplace/neon",
+      "kaders": [],
+      "klikpad": [
+        "Open je project in Vercel.",
+        "Klik op het tabblad Storage.",
+        "Klik Create Database en kies Neon.",
+        "Kies regio Frankfurt en het gratis plan, en klik Create.",
+        "Koppel de database aan Production, Preview en Development, en klik Connect."
+      ]
+    },
+    {
+      "id": "vercel-variabelen",
+      "opname": "ingelogd",
+      "bestand": null,
+      "alt": "Settings, Environment Variables in Vercel, met de velden Key en Value.",
+      "standVan": null,
+      "uitleg": "https://vercel.com/docs/environment-variables",
+      "kaders": [],
+      "klikpad": [
+        "Open je project in Vercel.",
+        "Klik Settings, dan Environment Variables.",
+        "Vul bij Key de naam in die Claude noemde, en bij Value de waarde. Plak de waarde nooit in de chat.",
+        "Kies de omgevingen die Claude noemde en klik Save.",
+        "Ga naar Deployments en klik bij de bovenste op Redeploy, zodat de nieuwe waarde werkt."
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Naar de inhoud</a>
+<header class="top">
+  <div class="wrap">
+    <div class="brand-row">
+      <span id="logo-slot"><img class="logo" id="logo" src="brand/logo-wit.svg" alt="Bos &amp; Brouwer"></span>
+      <div class="titles">
+        <h1>Projectwizard</h1>
+        <p>Van idee tot een eigen tool die online staat. Alles blijft in je browser.</p>
+      </div>
+    </div>
+    <nav class="parts" aria-label="Delen"><ol id="parts"></ol></nav>
+  </div>
+</header>
+<div class="stepbar">
+  <div class="wrap">
+    <div id="progress"></div>
+    <nav aria-label="Stappen"><ol class="steps" id="steps"></ol></nav>
+  </div>
+</div>
+<main id="main" class="wrap" tabindex="-1">
+  <noscript><p>Deze wizard heeft JavaScript nodig. Zet het aan, of open het bestand in een andere browser.</p></noscript>
+</main>
+<footer class="foot">
+  <div class="wrap">
+    <p>Een werkinstrument van Bos &amp; Brouwer bij het template BB_foundation_webapp. Wat de wizard voor je maakt, draagt geen merk: het is van jou.</p>
+    <p><a href="feedback.html">Feedback geven</a> op de workshop, de voorbereiding, de wizard of het template.</p>
+    <p>Voor de tweede workshopdag: <a href="workshop-2.html">Live @ Five, day 2</a>.</p>
+  </div>
+</footer>
+<div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+<script>
+"use strict";
+(() => {
+  /* Vaste gegevens. De patronen en standaarden volgen template/schema/project.config.schema.json. */
+  const STORAGE_KEY = "foundation-wizard:v1";
+  const PARTS_KEY = "foundation-wizard-delen:v1";
+  const OLD_PREP_KEY = "foundation-voorbereiding:v1";
+  const REPO_URL = "https://github.com/JBandB/bb_foundation_webapp";
+  /* De repo van deze wizard en het lesmateriaal; het template staat in REPO_URL. */
+  const MATERIALS_URL = "https://github.com/JBandB/bb_foundation_webapp_materials";
+  const SLUG = /^[a-z][a-z0-9-]{1,30}$/;
+  const ROLE = /^[a-z][a-z0-9_]{1,30}$/;
+  const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+  const DOMAIN = /^[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$/;
+  const EM = String.fromCodePoint(0x2014);
+  const EM_DASH = new RegExp("\\s*" + EM + "\\s*", "g");
+  /* Dezelfde vormen als de geheimenwacht in template/lib/config.ts. */
+  const SECRETS = [
+    [/^(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqps?):\/\//i, "een verbindingsstring"],
+    [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, "een privésleutel"],
+    [/^eyJ[\w-]{8,}\.[\w-]{8,}\.[\w-]+$/, "een token"],
+    [/^(?:ghp|gho|ghu|ghs|github_pat)_[A-Za-z0-9_]{20,}$/, "een toegangstoken"],
+    [/^xox[abp]-/, "een toegangstoken"],
+    [/^sk-[A-Za-z0-9_-]{20,}$/, "een API-sleutel"],
+    [/^AKIA[0-9A-Z]{16}$/, "een toegangssleutel"],
+  ];
+  /* De drie delen. Deel B is de oorspronkelijke wizard, deel A en C zijn gidsen met vinkjes. */
+  const PARTS = [
+    { id: "voorbereiden", letter: "A", name: "Voorbereiden", time: "thuis, ongeveer 45 minuten" },
+    { id: "ontwerpen", letter: "B", name: "Je tool ontwerpen", time: "ongeveer een uur" },
+    { id: "live", letter: "C", name: "Op de dag: live zetten", time: "ongeveer een uur" },
+  ];
+  const STEPS = [
+    ["Je tool ontwerpen", 1], ["Projectbasis", 4], ["Mensen", 6], ["Inhoud", 20], ["Koppelingen", 3],
+    ["Accounts en budget", 5], ["Huisstijl", 5], ["Fasen", 8], ["Controle en startprompt", 3],
+  ];
+  const TOTAL_MINUTES = STEPS.reduce((sum, [, minutes]) => sum + minutes, 0);
+  const COLOURS = [
+    ["primary", "Hoofdkleur", "Knoppen, links en de ring rond het veld met focus.", "de hoofdkleur"],
+    ["accent", "Accentkleur", "Accenten, de tekstselectie en de tweede grafiekkleur.", "de accentkleur"],
+    ["surface", "Canvas", "De achtergrond van de pagina in de lichte modus.", "het canvas"],
+    ["ink", "Tekst", "De tekstkleur in de lichte modus.", "de tekstkleur"],
+    ["success", "Gelukt", "Gelukt, actief, akkoord.", "de kleur voor gelukt"],
+    ["warning", "Let op", "Let op, wacht op iets.", "de kleur voor let op"],
+    ["danger", "Fout", "Fout, verwijderen, geweigerd.", "de kleur voor fout"],
+    ["info", "Mededeling", "Een neutrale mededeling.", "de kleur voor een mededeling"],
+  ];
+  const DEFAULT_COLOURS = { primary: "#1f4e79", accent: "#0f766e", surface: "#f6f7f9", ink: "#1b1f24", success: "#2f7d52", warning: "#8f6a22", danger: "#b04a35", info: "#2f6f79" };
+  const RADII = { sharp: [4, 8], soft: [8, 12] };
+  const MFA_TEXT = { admins: "beheerders", everyone: "iedereen", nobody: "niemand" };
+  const MODULES = { "auth-entra": "Inloggen met Microsoft Entra", "auth-password": "Wachtwoordlogin", jobs: "Achtergrondwerk", messaging: "Berichten", files: "Bestanden" };
+  const RESERVED = [
+    ["monitoring-sentry", "Foutmonitoring met Sentry", "Fouten en trage verzoeken naar Sentry, zonder de gegevens die er niet in horen."],
+    ["portal", "Klantportaal", "Een tweede deur voor mensen buiten de organisatie, met autorisatie per rij."],
+    ["access-graph", "Rollen schrijven naar Entra", "Rollen toekennen vanuit de tool in plaats van in het Entra-beheercentrum."],
+  ];
+  const SERVICES = {
+    github: { name: "GitHub", plan: "gratis, als organisatie", ceiling: "de uitgavenlimiet voor Actions op nul" },
+    vercel: { name: "Vercel", plan: "Hobby, later Pro", ceiling: "Spend Management" },
+    neon: { name: "Neon", plan: "gratis, later Launch", ceiling: "het plan zelf, en autosuspend" },
+    m365: { name: "Microsoft 365", plan: "het bestaande abonnement van de organisatie", ceiling: "niet van toepassing, de app gebruikt het bestaande abonnement" },
+    azure: { name: "Azure (opslag)", plan: "pay as you go", ceiling: "een budgetwaarschuwing op de resource group" },
+    mail: { name: "Mailaanbieder (SMTP)", plan: "naar keuze, met SPF en DKIM op het afzenderdomein", ceiling: "het plan van de aanbieder" },
+  };
+  /* De enige casus in deze wizard: een verzonnen kinderboerderij. */
+  const EXAMPLE = {
+    name: "Rooster De Weide",
+    description: "Het vrijwilligersrooster van kinderboerderij De Weide: wie staat wanneer, en wie valt in.",
+    organisation: "Kinderboerderij De Weide",
+    owner: "Anna, de coördinator van de vrijwilligers",
+    roles: "Coördinator: de twee coördinatoren; mogen diensten plannen en alle vrijwilligers zien; mogen niemand verwijderen. Vrijwilliger: zo'n veertig mensen; mogen zich op een open dienst zetten; zien geen gegevens van anderen.",
+    retention: "Toestemmingsformulieren van ouders bewaren we tot een jaar nadat de vrijwilliger is gestopt.",
+    phases: "Fase 1, Rooster en inschrijven: de coördinator maakt diensten aan en vrijwilligers schrijven zich in. Klaar als elke dienst van de komende maand in de tool staat en invallen via de tool gaat. Handwerk: de gedeelde postbus en de ledenlijst. Fase 2, Herinneringen en beschikbaarheid. Fase 3, Een jaaroverzicht per vrijwilliger.",
+  };
+  /* Stap 3: [sleutel, veld, label, uitleg, voorbeeld, regels]. */
+  const CONTENT = [
+    ["why", "t-why", "Doel: welk probleem lost het op, voor wie, en wat gebeurt er als het er niet komt?", "Twee alinea's is genoeg. Dit wordt kopje 1 van het plan en de inleiding van de specificatie.", "Het rooster staat in een spreadsheet die drie mensen tegelijk bewerken. Elke week valt er een dienst uit omdat twee mensen dachten dat de ander kwam, en de coördinator belt dan rond. Dat kost haar vier uur per week.", 5],
+    ["success", "t-success", "Wanneer is het project geslaagd?", "Meetbaar, voor het geheel. Het exitcriterium per fase vul je in bij stap 7; samen vormen ze kopje 2.", "De coördinator stuurt geen rooster meer per mail, en elke dienst van de komende maand heeft een naam.", 3],
+    ["concepts", "t-concepts", "Kernbegrippen: wat bestaat er, en hoe hangt het samen?", "De zelfstandige naamwoorden van het project, elk met één zin. Dit wordt het datamodel.", "Een dienst is een dagdeel op een locatie (de stal, de kassa) met een gewenst aantal mensen. Een inschrijving koppelt een vrijwilliger aan een dienst. Een vrijwilliger heeft een beschikbaarheid per weekdag.", 5],
+    ["processes", "t-processes", "Processen: wat doet wie, en in welke volgorde?", "De werkwoorden, één proces per alinea, in genummerde stappen. Begin met de ene handeling waar het om draait, en zeg wat daarin mis kan gaan. Dit worden de kernflows.", "Een dienst vullen: 1. de coördinator maakt de diensten van de maand aan; 2. vrijwilligers schrijven zich in; 3. drie dagen van tevoren krijgt wie op een open dienst past een mail; 4. de dag ervoor krijgt elke ingeschrevene een herinnering.", 6],
+    ["rules", "t-rules", "Regels die nooit mogen breken", "Genummerd P1, P2, en verder: wat altijd waar moet zijn, ook als niemand kijkt. Ze worden regels in de database waar dat kan.", "P1: een vrijwilliger kan niet op twee diensten tegelijk staan. P2: een dienst in het verleden verandert niet meer. P3: een minderjarige staat nooit alleen op een dienst.", 4],
+    ["sensitive", "t-sensitive", "Gevoelige gegevens: welke zijn het, en wie mag ze niet zien?", "Beschrijf ze, plak ze niet. Dit komt in kopje 10 van het plan, bij privacy, en bepaalt wie wat mag zien.", "Telefoonnummers van vrijwilligers en de toestemmingsformulieren van ouders. Een vrijwilliger ziet die van anderen niet.", 3],
+    ["notBuilding", "t-not", "Wat bouwen we niet?", "Het belangrijkste veld. Alles wat je hier niet noemt, komt een keer terug als \"kan dat er even bij\".", "Geen urenregistratie, geen onkosten, geen app in de winkels (de website werkt op een telefoon), geen koppeling met de agenda van vrijwilligers in fase 1.", 3],
+  ];
+  /* Het projectplan: de kopjes en de cursieve aanwijzingen uit template/modules/core/seed/docs/PROJECTPLAN.md. */
+  const HEADINGS = ["1. Waarom dit project", "2. Wanneer het geslaagd is", "3. Wie gebruikt het", "4. Kernbegrippen", "5. Processen", "6. Regels die nooit mogen breken", "7. Gegevens van buiten en koppelingen", "8. Wat we niet bouwen", "9. Fasen", "10. Randvoorwaarden", "11. Open vragen", "12. Wijzigingen aan dit plan"];
+  const HINTS = [
+    "Welk probleem lost het op, voor wie, en wat gebeurt er als het er niet komt? Twee alinea's. Claude maakt hiervan de inleiding van `docs/SPEC.md` en de eerste regels van `README.md`.",
+    "Eén meetbare zin per fase: \"fase 1 is klaar als elke vrijwilliger zijn diensten hier ziet en de coördinator er geen mail meer over stuurt.\" Dit wordt het exitcriterium en de kernflow van de e2e.",
+    "Een tabel: rol, wie dat zijn, wat ze mogen, wat ze uitdrukkelijk niet mogen. De rollen hier zijn de rollen in `project.config.json`; wat ze mogen wordt de rechtenmatrix.",
+    "De zelfstandige naamwoorden van het project, elk met één zin en de relaties ertussen: \"een dienst hoort bij een locatie en heeft nul of meer deelnemers.\" Dit wordt het datamodel.",
+    "De werkwoorden: wat doet wie, in welke volgorde, en wat is daarna anders? Eén proces per kopje, als genummerde stappen. Dit worden de kernflows, de server actions en de controlescripts.",
+    "Genummerd P1, P2, ... Dingen die altijd waar moeten zijn, ook als niemand kijkt: \"een dienst kan niet twee keer aan dezelfde persoon worden toegewezen.\" Ze komen in `CLAUDE.md` onder \"Van dit project\" en worden constraints in de database waar dat kan.",
+    "Wat komt er van buiten (een bestand, een ander systeem, mail) en wat gaat er naar buiten? Per koppeling: welke richting, hoe vaak, wat als het stuk is. Dit bepaalt welke modules aan staan en welke taken in de wachtrij komen.",
+    "Expliciet. Wat lijkt erbij te horen maar hoort er niet bij, en waarom. Dit is de fasegrens waar Claude niet overheen mag, ook niet \"even snel\".",
+    "Eén tot vier fasen, elk met wat erin zit, het exitcriterium uit kopje 2, en het handwerk buiten de code dat ervoor nodig is (accounts, een postbus, een container).",
+    "Accounts en wie ze beheert, het budget per maand en waar het plafond staat, bewaartermijnen en privacy (welke gegevens zijn gevoelig), de taal van de interface, de huisstijl.",
+    "Genummerd V1, V2, ... Wat je nog niet weet, met wie het antwoord heeft. Een open vraag is geen reden om te wachten; Claude bouwt om de vraag heen en zegt waar hij een aanname deed.",
+    "Een regel per wijziging: datum, wat, waarom. Het plan verandert; dit kopje laat zien hoe.",
+  ];
+  /* [label, voorgrond, achtergrond, norm, kleur die het voorstel aanpast, voorgrond en achtergrond in de donkere benadering]. */
+  const PAIRS = [
+    ["Tekst op het canvas", "ink", "surface", 4.5, "ink", "ink", "bg"],
+    ["Witte tekst op de hoofdkleur, zoals op een knop", "white", "primary", 4.5, "primary", "onPrimary", "primary"],
+    ["De hoofdkleur als focusring op het canvas", "primary", "surface", 3, "primary", "primary", "bg"],
+    ["Witte tekst op de accentkleur", "white", "accent", 4.5, "accent", "onAccent", "accent"],
+    ["De accentkleur als tekst op het canvas", "accent", "surface", 4.5, "accent", "accentText", "bg"],
+    ["Gelukt als tekst op een kaart", "success", "card", 4.5, "success", "success", "card"],
+    ["Let op als tekst op het canvas", "warning", "surface", 4.5, "warning", "warning", "bg"],
+    ["Fout als tekst op het canvas", "danger", "surface", 4.5, "danger", "danger", "bg"],
+    ["Mededeling als tekst op een kaart", "info", "card", 4.5, "info", "info", "card"],
+  ];
+
+  /* De schermafbeeldingen: ingebed uit wizard/schermen.json, zodat het ook vanaf file:// werkt. */
+  const SCREENS = new Map();
+  try {
+    const manifest = JSON.parse(document.getElementById("schermen").textContent || "{}");
+    for (const screen of Array.isArray(manifest.schermen) ? manifest.schermen : []) SCREENS.set(screen.id, screen);
+  } catch { /* Zonder manifest toont elke stap zijn tekst, en dat is genoeg. */ }
+
+  /* De toestand van deel B: één object, bewaard in localStorage zodat je kunt stoppen en verdergaan. */
+  let storageOk = true;
+  let summary = { step: -1, items: [] };
+  let brandRefs = null;
+  let logoUrl = "";
+  const shown = new Map();
+  const main = document.getElementById("main");
+
+  function blankRole(nl, en, value) {
+    return { value: value || "", nl: nl || "", en: en || "", admin: false, locked: false, valueEdited: false, who: "", may: "", mayNot: "" };
+  }
+  function blankPhase() { return { name: "", contents: "", exit: "", manual: "" }; }
+  function blankAccount() { return { exists: "", owner: "", admin: "" }; }
+  function freshState() {
+    return {
+      version: 1, step: 0, maxStep: 0, resume: 0, savedAt: "",
+      project: { name: "", slug: "", slugEdited: false, description: "", organisation: "", mailDomain: "", owner: "", uiLanguage: "nl", timezone: "Europe/Amsterdam", m365: "", mfa: "admins" },
+      roles: [{ ...blankRole("Beheerder", "Administrator", "admin"), admin: true, locked: true, valueEdited: true }, blankRole("Lid", "Member", "member")],
+      people: { count: "", audience: "internal" },
+      content: { why: "", success: "", concepts: "", processes: "", rules: "", sensitive: "", notBuilding: "" },
+      modules: { jobs: false, messaging: false, files: false, transport: "", teams: false, retention: "" },
+      accounts: { github: blankAccount(), vercel: blankAccount(), neon: blankAccount(), m365: blankAccount(), azure: blankAccount(), mail: blankAccount() },
+      commercial: "",
+      budget: { total: "", split: { github: "", vercel: "", neon: "", m365: "", azure: "", mail: "" } },
+      brand: { shortName: "", shortEdited: false, colours: { ...DEFAULT_COLOURS }, darkMode: "auto", radius: "sharp", logoKind: "wordmark", logoSvg: "", logoName: "" },
+      phases: [blankPhase()],
+    };
+  }
+  /* Neemt van een bewaarde toestand alleen over wat dezelfde vorm heeft als een verse. */
+  function merge(base, saved) {
+    if (base === null || typeof base !== "object" || Array.isArray(base)) return typeof saved === typeof base && !Array.isArray(base) ? saved : base;
+    const out = {};
+    for (const key of Object.keys(base)) out[key] = saved && typeof saved === "object" ? merge(base[key], saved[key]) : base[key];
+    return out;
+  }
+  function readJson(key) {
+    let raw = null;
+    try { raw = window.localStorage.getItem(key); } catch { storageOk = false; }
+    try { return JSON.parse(raw || "null"); } catch { return null; }
+  }
+  function load() {
+    const fresh = freshState();
+    const saved = readJson(STORAGE_KEY);
+    if (!saved || saved.version !== 1) return fresh;
+    const next = merge(fresh, saved);
+    if (Array.isArray(saved.roles) && saved.roles.length) next.roles = saved.roles.slice(0, 8).map((role) => merge(blankRole(), role));
+    if (!next.roles.some((role) => role.locked)) next.roles.unshift(fresh.roles[0]);
+    next.roles.forEach((role) => { if (role.locked) Object.assign(role, { value: "admin", admin: true }); });
+    if (Array.isArray(saved.phases) && saved.phases.length) next.phases = saved.phases.slice(0, 4).map((phase) => merge(blankPhase(), phase));
+    next.step = Math.min(8, Math.max(0, Math.floor(next.step) || 0));
+    next.maxStep = Math.min(8, Math.max(next.step, Math.floor(next.maxStep) || 0));
+    return next;
+  }
+  function save() {
+    state.savedAt = new Date().toISOString();
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { storageOk = false; }
+  }
+  let state = load();
+
+  /* De toestand van deel A en C, en welk deel open staat. Los van deel B, zodat de sleutel van B blijft werken. */
+  function freshParts() { return { version: 1, part: "voorbereiden", prep: { step: 0, done: {} }, live: { step: 0, done: {} } }; }
+  function loadParts() {
+    const fresh = freshParts();
+    const saved = readJson(PARTS_KEY);
+    if (saved && saved.version === 1) {
+      if (PARTS.some((part) => part.id === saved.part)) fresh.part = saved.part;
+      for (const [key, last] of [["prep", 7], ["live", 8]]) {
+        const step = Math.floor(Number(saved[key] && saved[key].step));
+        fresh[key].step = step >= 0 && step <= last ? step : 0;
+        for (let n = 1; n <= last; n += 1) if (saved[key] && saved[key].done && saved[key].done[n] === true) fresh[key].done[n] = true;
+      }
+      return fresh;
+    }
+    /* Wie de oude voorbereidingspagina gebruikte, houdt zijn vinkjes en zijn halve pagina. */
+    const old = readJson(OLD_PREP_KEY);
+    if (old && old.version === 1) {
+      for (let n = 1; n <= 7; n += 1) if (old.done && old.done[n] === true) fresh.prep.done[n] = true;
+      const step = Math.floor(Number(old.step));
+      fresh.prep.step = step >= 0 && step <= 7 ? step : 0;
+      adoptOldAnswers(old.answers || {});
+    }
+    return fresh;
+  }
+  /* De zes vragen van de oude halve pagina naar de velden van deel B, alleen waar die nog leeg zijn. */
+  function adoptOldAnswers(answers) {
+    const answer = (n) => (typeof answers[n] === "string" ? answers[n].trim() : "");
+    const c = state.content;
+    const why = [answer(1), answer(2) ? `Voor wie: ${answer(2)}` : ""].filter(Boolean).join("\n\n");
+    if (!c.why.trim() && why) c.why = why;
+    if (!c.processes.trim() && answer(3)) c.processes = answer(3);
+    if (!c.sensitive.trim() && answer(4)) c.sensitive = answer(4);
+    if (!c.success.trim() && answer(5)) c.success = answer(5);
+    if (!c.notBuilding.trim() && answer(6)) c.notBuilding = answer(6);
+    const count = /\b(\d{1,6})\b/.exec(answer(2));
+    if (!String(state.people.count).trim() && count) state.people.count = count[1];
+    save();
+  }
+  function saveParts() {
+    try { window.localStorage.setItem(PARTS_KEY, JSON.stringify(parts)); } catch { storageOk = false; }
+  }
+  let parts = loadParts();
+
+  /* Kleine hulpjes voor tekst. */
+  const clean = (text) => String(text).replace(EM_DASH, ", ");
+  const t = (value) => clean(String(value ?? "").trim());
+  const inline = (value) => t(value).replace(/\s*\n\s*/g, " ");
+  const cell = (value) => inline(value).replace(/\|/g, "\\|");
+  const bare = (value) => inline(value).replace(/[\s.]+$/, "");
+  const within = (value, min, max) => t(value).length >= min && t(value).length <= max;
+  const int = (value) => (/^\d{1,9}$/.test(t(value)) ? Number(t(value)) : null);
+  const yesNo = (value) => (value === "yes" ? true : value === "no" ? false : null);
+  const capital = (text) => text.charAt(0).toUpperCase() + text.slice(1);
+  const domainOf = (value) => t(value).replace(/^@/, "").toLowerCase();
+  const plain = (text) => t(text).normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+  const slugify = (text) => plain(text).replace(/[^a-z0-9]+/g, "-").replace(/^[^a-z]+/, "").slice(0, 31).replace(/-+$/, "");
+  const snake = (text) => plain(text).replace(/[^a-z0-9]+/g, "_").replace(/^[^a-z]+/, "").slice(0, 31).replace(/_+$/, "");
+  const shortFrom = (name) => t(name).slice(0, 20).trim();
+  const shortName = () => t(state.brand.shortName) || shortFrom(state.project.name);
+  const longToday = () => new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "long", year: "numeric" }).format(new Date());
+  function longDate(iso) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ""));
+    if (!match) return "";
+    return new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "long", year: "numeric" }).format(new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  }
+  function isoToday() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  function validTz(zone) {
+    if (!t(zone)) return false;
+    try { new Intl.DateTimeFormat("en", { timeZone: t(zone) }); return true; } catch { return false; }
+  }
+  function toHex6(value) {
+    const v = String(value ?? "").trim().toLowerCase();
+    if (/^#[0-9a-f]{6}$/.test(v)) return v;
+    if (/^#[0-9a-f]{3}$/.test(v)) return `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`;
+    return null;
+  }
+
+  /* Kleur: sRGB, OKLCH en het WCAG-contrast, met dezelfde formules als template/generators/colour.ts. */
+  const toLinear = (v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const fromLinear = (v) => (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
+  const channels = (hex) => [1, 3, 5].map((i) => parseInt(toHex6(hex).slice(i, i + 2), 16) / 255);
+  const hexOf = (rgb) => "#" + rgb.map((v) => Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).padStart(2, "0")).join("");
+  function luminance(hex) {
+    const [r, g, b] = channels(hex).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+  function contrast(a, b) {
+    const [high, low] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (high + 0.05) / (low + 0.05);
+  }
+  function oklch(hex) {
+    const [r, g, b] = channels(hex).map(toLinear);
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+    const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+    const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    const A = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s;
+    const B = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s;
+    const c = Math.hypot(A, B);
+    return { l: 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, c, h: c < 1e-6 ? 0 : ((Math.atan2(B, A) * 180) / Math.PI + 360) % 360 };
+  }
+  function linearOf({ l, c, h }) {
+    const a = c * Math.cos((h * Math.PI) / 180);
+    const b = c * Math.sin((h * Math.PI) / 180);
+    const L = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+    const M = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+    const S = (l - 0.0894841775 * a - 1.291485548 * b) ** 3;
+    return [4.0767416621 * L - 3.3077115913 * M + 0.2309699292 * S, -1.2684380046 * L + 2.6097574011 * M - 0.3413193965 * S, -0.0041960863 * L - 0.7034186147 * M + 1.707614701 * S];
+  }
+  /* Naar hex met minder chroma als sRGB de kleur niet kan tonen, zoals de generator doet. */
+  function fromOklch({ l, c, h }) {
+    const light = Math.min(1, Math.max(0, l));
+    const fits = (rgb) => rgb.every((v) => v >= -0.0005 && v <= 1.0005);
+    let low = 0;
+    let high = Math.max(0, c);
+    let rgb = linearOf({ l: light, c: high, h });
+    if (!fits(rgb)) {
+      for (let i = 0; i < 24; i += 1) {
+        const mid = (low + high) / 2;
+        if (fits(linearOf({ l: light, c: mid, h }))) low = mid; else high = mid;
+      }
+      rgb = linearOf({ l: light, c: low, h });
+    }
+    return hexOf(rgb.map(fromLinear));
+  }
+  const withL = (hex, l) => { const o = oklch(hex); return fromOklch({ l, c: o.c, h: o.h }); };
+  const tinted = (hex, l, maxC) => { const o = oklch(hex); return fromOklch({ l, c: Math.min(o.c, maxC), h: o.h }); };
+  /* Schuift de lichtheid van de voorgrond van de achtergrond af tot het contrast de norm haalt. */
+  function ensure(foreground, background, minimum) {
+    if (contrast(foreground, background) >= minimum) return foreground;
+    const darken = luminance(background) > 0.18;
+    const start = oklch(foreground);
+    for (let step = 1; step <= 100; step += 1) {
+      const l = darken ? start.l - step * 0.01 : start.l + step * 0.01;
+      if (l < 0 || l > 1) break;
+      const candidate = fromOklch({ l, c: start.c, h: start.h });
+      if (contrast(candidate, background) >= minimum) return candidate;
+    }
+    return null;
+  }
+  const ratioText = (ratio) => `${(Math.floor(ratio * 100) / 100).toFixed(2).replace(".", ",")}:1`;
+
+  /* De DOM, altijd via createElement en tekstknopen, nooit via innerHTML. */
+  function h(tag, attrs, ...kids) {
+    const el = document.createElement(tag);
+    for (const [key, value] of Object.entries(attrs || {})) {
+      if (value === null || value === undefined || value === false) continue;
+      if (typeof value === "function") el.addEventListener(key.slice(2), value);
+      else if (key === "class") el.className = value;
+      else el.setAttribute(key, value === true ? "" : String(value));
+    }
+    for (const kid of kids.flat()) if (kid !== null && kid !== undefined && kid !== false && kid !== "") el.append(kid);
+    return el;
+  }
+  /* Tekst met `code` tussen backticks en **vet** tussen dubbele sterretjes. */
+  const rich = (text) => String(text).split(/(`[^`]+`|\*\*[^*]+\*\*)/).filter((part) => part !== "").map((part) => {
+    if (part.length > 1 && part.startsWith("`") && part.endsWith("`")) return h("code", {}, part.slice(1, -1));
+    if (part.length > 4 && part.startsWith("**") && part.endsWith("**")) return h("strong", {}, rich(part.slice(2, -2)));
+    return part;
+  });
+  const note = (text, kind) => h("p", { class: `note ${kind || ""}` }, rich(text));
+  const exampleBox = (text) => h("p", { class: "example" }, h("strong", {}, "Voorbeeld uit de kinderboerderij. "), text);
+  /* Een label naar de wizard van dag 2, op plekken waar de vraag al opkomt. */
+  const dag2 = (text, hash) => h("p", { class: "dag2" }, h("span", { class: "dag2-pill" }, "Dag 2"), h("span", {}, rich(text)), h("a", { href: `workshop-2.html${hash ? `#${hash}` : ""}` }, "Bekijk dag 2"));
+
+  function field(o) {
+    const described = [];
+    const parts = [h("label", { for: o.id }, o.label)];
+    if (o.hint) { parts.push(h("p", { class: "hint", id: `${o.id}-hint` }, rich(o.hint))); described.push(`${o.id}-hint`); }
+    if (o.example) { parts.push(h("p", { class: "hint", id: `${o.id}-ex` }, h("span", { class: "ex" }, "Voorbeeld: "), o.example)); described.push(`${o.id}-ex`); }
+    const counter = o.max ? h("p", { class: "hint", id: `${o.id}-count` }) : null;
+    if (counter) described.push(`${o.id}-count`);
+    described.push(`${o.id}-err`);
+    const message = shown.get(o.id) || "";
+    const input = h(o.rows ? "textarea" : "input", {
+      id: o.id, name: o.id, type: o.rows ? null : "text", rows: o.rows, inputmode: o.inputmode, list: o.list,
+      autocomplete: o.autocomplete || "off", spellcheck: o.code ? "false" : null, autocapitalize: o.code ? "off" : null,
+      "aria-describedby": described.join(" "), "aria-invalid": message ? "true" : null,
+    });
+    input.value = o.obj[o.key] ?? "";
+    const count = () => { if (counter) counter.textContent = `${t(input.value).length} van hoogstens ${o.max} tekens.`; };
+    count();
+    input.addEventListener("input", () => { o.obj[o.key] = input.value; save(); count(); if (o.input) o.input(input.value, input); });
+    input.addEventListener("blur", () => {
+      if (o.blur) o.blur(input);
+      if (input.value.trim() !== "" || shown.has(o.id)) refreshError(o.id);
+    });
+    parts.push(o.wrap ? o.wrap(input) : input);
+    if (counter) parts.push(counter);
+    parts.push(h("p", { class: "error", id: `${o.id}-err` }, message));
+    return h("div", { class: "field" }, parts);
+  }
+  function radios(o) {
+    const message = shown.get(o.id) || "";
+    const described = [o.hint ? `${o.id}-hint` : null, `${o.id}-err`].filter(Boolean).join(" ");
+    const set = h("fieldset", { id: o.id, "aria-describedby": described }, h("legend", {}, o.legend));
+    if (o.hint) set.append(h("p", { class: "hint", id: `${o.id}-hint` }, rich(o.hint)));
+    set.append(h("p", { class: "error", id: `${o.id}-err` }, message));
+    const current = o.value !== undefined ? o.value : o.obj[o.key];
+    o.options.forEach(([value, label, hint, disabled], i) => {
+      const id = `${o.id}-${i}`;
+      const input = h("input", { type: "radio", id, name: o.id, value, disabled, "aria-describedby": hint ? `${id}-hint` : null });
+      input.checked = current === value;
+      input.addEventListener("change", () => {
+        if (!input.checked) return;
+        o.obj[o.key] = value;
+        save();
+        setError(o.id, "");
+        if (o.change) o.change(value);
+      });
+      set.append(h("div", { class: "choice" }, input, h("div", {}, h("label", { for: id }, label), hint ? h("p", { class: "hint", id: `${id}-hint` }, rich(hint)) : null)));
+    });
+    return set;
+  }
+  /* Een vast vinkje (locked) blijft zichtbaar aangevinkt en focusbaar; een klik verandert niets. */
+  function checkbox(o) {
+    const input = h("input", { type: "checkbox", id: o.id, "aria-disabled": o.locked ? "true" : null, "aria-describedby": o.hint ? `${o.id}-hint` : null });
+    input.checked = o.checked !== undefined ? o.checked : Boolean(o.obj[o.key]);
+    if (o.locked) input.addEventListener("click", (event) => event.preventDefault());
+    input.addEventListener("change", () => { o.obj[o.key] = input.checked; save(); if (o.change) o.change(input.checked); });
+    return h("div", { class: "choice" }, input, h("div", {}, h("label", { for: o.id }, o.label), o.hint ? h("p", { class: "hint", id: `${o.id}-hint` }, rich(o.hint)) : null));
+  }
+  function announce(message) {
+    const region = document.getElementById("announcer");
+    region.textContent = "";
+    window.setTimeout(() => { region.textContent = message; }, 60);
+  }
+
+  /* Afgeleide keuzes: inlog, modules, diensten, budget. */
+  const provider = () => (state.project.m365 === "no" ? "password" : "entra");
+  const transport = () => (state.project.m365 !== "yes" ? "smtp" : state.modules.transport || "graph");
+  function activeModules() {
+    const password = provider() === "password";
+    const messaging = password || state.modules.messaging;
+    const jobs = messaging || state.modules.jobs;
+    return [password ? "auth-password" : "auth-entra", jobs && "jobs", messaging && "messaging", state.modules.files && "files"].filter(Boolean);
+  }
+  const has = (name) => activeModules().includes(name);
+  function services() {
+    return ["github", "vercel", "neon", state.project.m365 === "yes" && "m365", has("files") && "azure", has("messaging") && transport() === "smtp" && "mail"].filter(Boolean);
+  }
+  const planOf = (key) => (key === "vercel" && state.commercial === "yes" ? "Hobby tijdens het bouwen, Pro zodra het live is" : SERVICES[key].plan);
+  const usedBudget = () => services().reduce((sum, key) => sum + (int(state.budget.split[key]) || 0), 0);
+  function budgetText() {
+    const total = int(state.budget.total);
+    const used = usedBudget();
+    if (total === null) return used ? `Verdeeld: ${used} euro. Vul het budget in om te zien wat er overblijft.` : "Nog geen budget ingevuld.";
+    if (used > total) return `Verdeeld: ${used} euro, dat is ${used - total} euro meer dan het budget van ${total} euro.`;
+    return `Budget: ${total} euro per maand. Verdeeld: ${used} euro. Nog te verdelen: ${total - used} euro.`;
+  }
+  function loginText() {
+    return provider() === "entra" ? "met het Microsoft-account van de organisatie (Entra)" : `eigen accounts met wachtwoord, tweestapsverificatie verplicht voor ${MFA_TEXT[state.project.mfa] || "beheerders"}`;
+  }
+
+  /* Validatie: per stap een lijst [veld, melding]. Stap 8 verzamelt ze allemaal. */
+  function errorsFor(step) {
+    const p = state.project;
+    const errors = [];
+    const need = (ok, id, message) => { if (!ok && !errors.some(([key]) => key === id)) errors.push([id, message]); };
+    if (step === 1) {
+      need(within(p.name, 2, 60), "f-name", "Vul de naam van het project in, 2 tot 60 tekens.");
+      need(SLUG.test(p.slug.trim()), "f-slug", "Gebruik voor de technische naam kleine letters, cijfers en koppeltekens, beginnend met een letter, 2 tot 31 tekens.");
+      need(within(p.description, 10, 200), "f-description", `Schrijf de omschrijving in 10 tot 200 tekens; nu zijn het er ${t(p.description).length}.`);
+      need(within(p.organisation, 2, 80), "f-org", "Vul de naam van de organisatie in, 2 tot 80 tekens.");
+      need(!domainOf(p.mailDomain) || DOMAIN.test(domainOf(p.mailDomain)), "f-domain", "Vul het maildomein in zoals voorbeeld.nl, of laat het leeg.");
+      need(validTz(p.timezone), "f-tz", "Vul een bekende tijdzone in, zoals Europe/Amsterdam.");
+      need(p.m365 === "yes" || p.m365 === "no", "f-m365", "Kies ja of nee bij de vraag over Microsoft 365.");
+    }
+    if (step === 2) {
+      const values = state.roles.map((role) => role.value.trim());
+      state.roles.forEach((role, i) => {
+        need(within(role.nl, 1, 40), `r-${i}-nl`, `Vul het Nederlandse label van rol ${i + 1} in, hoogstens 40 tekens.`);
+        need(within(role.en, 1, 40), `r-${i}-en`, `Vul het Engelse label van rol ${i + 1} in, hoogstens 40 tekens.`);
+        if (role.locked) return;
+        need(ROLE.test(values[i]), `r-${i}-value`, `Gebruik voor de waarde van rol ${i + 1} kleine letters, cijfers en liggende streepjes, beginnend met een letter, 2 tot 31 tekens.`);
+        need(values.indexOf(values[i]) === i, `r-${i}-value`, `De waarde van rol ${i + 1} komt al eerder voor; elke rol heeft een eigen waarde.`);
+      });
+      need(state.roles.some((role) => role.admin), "role-list", "Minstens één rol is beheerder, anders kan niemand Beheer openen.");
+      need(state.roles.length <= 8, "role-list", "Hoogstens acht rollen.");
+      need(!t(state.people.count) || /^[1-9]\d{0,6}$/.test(t(state.people.count)), "f-count", "Vul het aantal gebruikers in als heel getal, of laat het leeg.");
+      need(state.people.audience !== "public", "f-audience", "Een openbare site zonder inloggen past niet in dit template. Kies een van de andere twee antwoorden.");
+    }
+    if (step === 5) {
+      const total = int(state.budget.total);
+      need(!t(state.budget.total) || total !== null, "f-budget", "Vul het budget in als heel bedrag in euro's, zonder punt of komma.");
+      services().forEach((key) => need(!t(state.budget.split[key]) || int(state.budget.split[key]) !== null, `b-${key}`, `Vul het deel voor ${SERVICES[key].name} in als heel bedrag in euro's.`));
+      need(total === null || usedBudget() <= total, "f-budget", `De verdeling over de diensten (${usedBudget()} euro) is meer dan het budget (${total} euro). Verhoog het budget of verlaag een deel.`);
+    }
+    if (step === 6) {
+      need(within(shortName(), 1, 20), "f-short", "Vul een korte naam in van hoogstens 20 tekens.");
+      COLOURS.forEach(([key, name]) => need(HEX.test(String(state.brand.colours[key]).trim()), `c-${key}`, `Vul voor ${name.toLowerCase()} een hexkleur in, zoals ${DEFAULT_COLOURS[key]}.`));
+      need(state.brand.logoKind !== "image" || Boolean(state.brand.logoSvg), "f-logo", "Kies een SVG-bestand voor het logo, of kies het woordmerk.");
+    }
+    if (step === 7) state.phases.forEach((phase, i) => need(within(phase.name, 1, 80), `p-${i}-name`, `Geef fase ${i + 1} een naam, hoogstens 80 tekens.`));
+    for (const [id, value] of textFields(step)) {
+      const hit = SECRETS.find(([pattern]) => pattern.test(t(value)));
+      if (hit) need(false, id, `Dit lijkt ${hit[1]}. Geheimen horen in .env.local en in Vercel, nooit in de bestanden van de wizard.`);
+    }
+    return errors;
+  }
+  /* De vrije tekstvelden per stap, voor de geheimenwacht. */
+  function textFields(step) {
+    const p = state.project;
+    if (step === 1) return [["f-name", p.name], ["f-description", p.description], ["f-org", p.organisation], ["f-owner", p.owner]];
+    if (step === 2) return state.roles.flatMap((r, i) => [[`r-${i}-nl`, r.nl], [`r-${i}-en`, r.en], [`r-${i}-who`, r.who], [`r-${i}-may`, r.may], [`r-${i}-maynot`, r.mayNot]]);
+    if (step === 3) return CONTENT.map(([key, id]) => [id, state.content[key]]);
+    if (step === 4) return [["m-retention", state.modules.retention]];
+    if (step === 5) return services().map((key) => [`a-${key}-admin`, state.accounts[key].admin]);
+    if (step === 7) return state.phases.flatMap((ph, i) => [[`p-${i}-name`, ph.name], [`p-${i}-contents`, ph.contents], [`p-${i}-exit`, ph.exit], [`p-${i}-manual`, ph.manual]]);
+    return [];
+  }
+  const allErrors = () => [1, 2, 3, 4, 5, 6, 7].flatMap((step) => errorsFor(step).map(([id, message]) => ({ step, id, message })));
+  /* Deel B is klaar als de controle is bereikt en niets meer open staat. */
+  const designDone = () => state.maxStep >= 8 && allErrors().length === 0;
+  function setError(id, message) {
+    if (message) shown.set(id, message); else shown.delete(id);
+    const text = document.getElementById(`${id}-err`);
+    if (text) text.textContent = message;
+    const el = document.getElementById(id);
+    if (el && el.tagName !== "FIELDSET") { if (message) el.setAttribute("aria-invalid", "true"); else el.removeAttribute("aria-invalid"); }
+  }
+  function refreshError(id) {
+    if (parts.part !== "ontwerpen") return;
+    const hit = errorsFor(state.step).find(([key]) => key === id);
+    setError(id, hit ? hit[1] : "");
+  }
+  function focusField(id) {
+    let el = document.getElementById(id);
+    if (el && el.tagName === "FIELDSET") el = el.querySelector("input:not([disabled])");
+    if (!el) el = document.getElementById("step-heading");
+    el.focus();
+    el.scrollIntoView({ block: "center" });
+  }
+
+  /* De kop: het logo, en per deel hoe ver je bent. */
+  const partById = (id) => PARTS.find((part) => part.id === id);
+  const doneCount = (key) => Object.keys(parts[key].done).length;
+  function partProgress(id) {
+    if (id === "voorbereiden") { const n = doneCount("prep"); return { ratio: n / 7, text: n === 7 ? "klaar" : `${n} van 7 klaar` }; }
+    if (id === "live") { const n = doneCount("live"); return { ratio: n / 8, text: n === 8 ? "klaar" : `${n} van 8 klaar` }; }
+    if (designDone()) return { ratio: 1, text: "klaar" };
+    return { ratio: state.maxStep / 8, text: state.maxStep > 0 ? `tot stap ${state.maxStep} van 8` : "nog niet begonnen" };
+  }
+  function renderHeader() {
+    const welcome = parts.part === "voorbereiden" && parts.prep.step === 0;
+    const logo = document.getElementById("logo");
+    if (logo) {
+      const src = welcome ? "brand/logo-met-bi-wit.svg" : "brand/logo-wit.svg";
+      if (logo.getAttribute("src") !== src) logo.setAttribute("src", src);
+      logo.classList.toggle("bi", welcome);
+    }
+    document.getElementById("parts").replaceChildren(...PARTS.map((part) => {
+      const progress = partProgress(part.id);
+      const fill = h("span");
+      fill.style.width = `${Math.round(progress.ratio * 100)}%`;
+      return h("li", {}, h("a", { class: "part", href: `#${part.id}`, "aria-current": part.id === parts.part ? "page" : null },
+        h("span", { class: "part-name" }, h("span", { class: "part-letter", "aria-hidden": "true" }, part.letter), h("span", { class: "sr-only" }, `Deel ${part.letter}: `), part.name),
+        h("span", { class: "part-meta" }, progress.text, h("span", { class: "part-time" }, `, ${part.time}`)),
+        h("span", { class: "part-bar", "aria-hidden": "true" }, fill)));
+    }));
+  }
+  /* Valt een logo weg (een los gedownload bestand zonder de map brand), dan staat de naam er als tekst. */
+  function guardLogo() {
+    const logo = document.getElementById("logo");
+    if (!logo) return;
+    const fallback = () => document.getElementById("logo-slot").replaceChildren(h("span", { class: "wordmark" }, "Bos & Brouwer"));
+    logo.addEventListener("error", fallback);
+    if (logo.complete && logo.naturalWidth === 0) fallback();
+  }
+
+  /* Navigeren en tekenen. Elke stap wordt in zijn geheel opnieuw opgebouwd. */
+  const RENDER = [designIntro, basis, people, content, modulesStep, accountsStep, brandStep, phasesStep, review];
+  function render(focusHeading) {
+    renderHeader();
+    renderProgress();
+    renderStep();
+    syncHash();
+    document.title = `${stepTitle()} - Projectwizard`;
+    if (focusHeading) { window.scrollTo(0, 0); document.getElementById("step-heading").focus(); }
+  }
+  function stepTitle() {
+    if (parts.part === "ontwerpen") return STEPS[state.step][0];
+    const guide = GUIDES[parts.part];
+    return guide.steps[parts[guide.key].step].title;
+  }
+  function renderStep() {
+    brandRefs = null;
+    if (parts.part !== "ontwerpen") { main.replaceChildren(renderGuide(parts.part)); return; }
+    const step = state.step;
+    const form = h("form", { novalidate: true, "aria-labelledby": "step-heading", onsubmit: (event) => { event.preventDefault(); next(); } },
+      h("h2", { id: "step-heading", tabindex: "-1" }, step === 0 ? "Je tool ontwerpen" : `Stap ${step} van 8: ${STEPS[step][0]}`));
+    if (summary.step === step && summary.items.length) form.append(errorSummary(summary.items));
+    form.append(...RENDER[step]().filter(Boolean), actions(step));
+    main.replaceChildren(form);
+  }
+  /* Opnieuw tekenen binnen een stap, met de focus terug op hetzelfde veld. */
+  function rerender() {
+    const active = document.activeElement ? document.activeElement.id : "";
+    renderStep();
+    const el = active ? document.getElementById(active) : null;
+    if (el) el.focus();
+  }
+  function renderProgress() {
+    if (parts.part !== "ontwerpen") { renderGuideProgress(parts.part); return; }
+    const step = state.step;
+    const left = STEPS.slice(Math.max(1, step)).reduce((sum, [, minutes]) => sum + minutes, 0);
+    const fill = h("span");
+    fill.style.width = `${Math.round((step / 8) * 100)}%`;
+    document.getElementById("progress").replaceChildren(
+      h("p", { class: "progress-text" }, step === 0 ? `Deel B. Acht stappen, samen ongeveer ${TOTAL_MINUTES} minuten.` : `Deel B, stap ${step} van 8, nog ongeveer ${left} minuten.`),
+      h("div", { class: "bar", "aria-hidden": "true" }, fill));
+    const list = document.getElementById("steps");
+    list.style.gridTemplateColumns = "repeat(8, minmax(0, 1fr))";
+    list.replaceChildren(...STEPS.slice(1).map(([title], i) => stepItem(i + 1, title)));
+  }
+  function stepItem(n, title) {
+    const reached = n <= state.maxStep;
+    const parts = [h("span", { class: "num", "aria-hidden": "true" }, String(n)), h("span", { class: "lbl" }, h("span", { class: "sr-only" }, `Stap ${n}: `), title, reached ? null : h("span", { class: "sr-only" }, ", nog niet bereikt"))];
+    const item = reached ? h("button", { type: "button", class: "step", "aria-current": n === state.step ? "step" : null, onclick: () => go(n) }, parts) : h("span", { class: "step off" }, parts);
+    return h("li", {}, item);
+  }
+  function actions(step) {
+    const back = step > 0 ? h("button", { type: "button", onclick: () => go(step - 1) }, "Vorige") : h("button", { type: "button", onclick: () => openPart("voorbereiden", 7) }, "Terug naar deel A");
+    let forward = null;
+    if (step === 0) forward = h("button", { type: "submit", class: "primary" }, state.maxStep > 0 ? `Verder bij stap ${state.resume || 1}` : "Begin");
+    else if (step < 8) forward = h("button", { type: "submit", class: "primary" }, "Volgende");
+    else if (allErrors().length === 0) forward = h("button", { type: "button", class: "primary", onclick: () => openPart("live", 1) }, "Door naar deel C: live zetten");
+    return h("div", { class: "actions" }, back, forward);
+  }
+  function next() {
+    const step = state.step;
+    if (step === 0) { go(state.resume || 1); return; }
+    if (step >= 8) return;
+    const errors = errorsFor(step);
+    if (!errors.length) { go(step + 1); return; }
+    shown.clear();
+    errors.forEach(([id, message]) => shown.set(id, message));
+    summary = { step, items: errors };
+    renderStep();
+    document.getElementById("error-summary").focus();
+  }
+  function go(step, focusId) {
+    if (step === 0 && state.step !== 0) state.resume = state.step;
+    summary = { step: -1, items: [] };
+    shown.clear();
+    if (focusId) errorsFor(step).forEach(([id, message]) => shown.set(id, message));
+    state.step = step;
+    state.maxStep = Math.max(state.maxStep, step);
+    save();
+    render(!focusId);
+    if (focusId) focusField(focusId);
+  }
+  function errorSummary(items) {
+    return h("div", { class: "summary", id: "error-summary", tabindex: "-1", role: "alert" },
+      h("h3", {}, items.length === 1 ? "Eén punt moet nog anders" : `${items.length} punten moeten nog anders`),
+      h("ul", {}, items.map(([id, message]) => h("li", {}, h("a", { href: `#${id}`, onclick: (event) => { event.preventDefault(); focusField(id); } }, message)))));
+  }
+
+  /* Wisselen van deel. Het adres volgt (#voorbereiden, #ontwerpen, #live, met een stap erachter), zodat een link werkt. */
+  function openPart(id, step) {
+    parts.part = id;
+    const guide = GUIDES[id];
+    if (guide && step !== undefined) parts[guide.key].step = step;
+    if (id === "ontwerpen" && step !== undefined) {
+      state.step = Math.min(step, state.maxStep);
+      save();
+    }
+    summary = { step: -1, items: [] };
+    shown.clear();
+    saveParts();
+    render(true);
+  }
+  function syncHash() {
+    const guide = GUIDES[parts.part];
+    const hash = guide && parts[guide.key].step > 0 ? `#${parts.part}-${parts[guide.key].step}` : `#${parts.part}`;
+    if (window.location.hash === hash) return;
+    try { window.history.replaceState(null, "", hash); } catch { /* Een browser die het adres niet laat aanpassen, werkt verder gewoon. */ }
+  }
+  function fromHash() {
+    const match = /^#(voorbereiden|ontwerpen|live)(?:-(\d{1,2}))?$/.exec(window.location.hash);
+    return match ? { part: match[1], step: match[2] === undefined ? undefined : Number(match[2]) } : null;
+  }
+  function applyHash() {
+    const target = fromHash();
+    if (!target) return false;
+    parts.part = target.part;
+    const guide = GUIDES[target.part];
+    if (guide && target.step !== undefined) parts[guide.key].step = Math.min(guide.steps.length - 1, target.step);
+    saveParts();
+    return true;
+  }
+
+  /* Deel A en C: gidsen met stappen, een vinkje per stap, en schermafbeeldingen waar ze er zijn. */
+  const P = (text) => h("p", {}, rich(text));
+  const lead = (text) => h("p", { class: "lead" }, rich(text));
+  const H3 = (text) => h("h3", {}, text);
+  const ext = (href, text) => h("a", { href, target: "_blank", rel: "noopener" }, text);
+  const guideLink = (nr, file) => ext(`${REPO_URL}/blob/main/docs/handleiding/${file}`, `handleiding ${nr}`);
+  const pre = (text) => h("pre", {}, h("code", {}, text));
+  /* Een lijstitem: een tekst met opmaak, of een reeks tekst en elementen. */
+  const item = (content) => h("li", {}, (Array.isArray(content) ? content : [content]).flatMap((part) => (typeof part === "string" ? rich(part) : [part])));
+  const OL = (...items) => h("ol", {}, items.map(item));
+  const UL = (...items) => h("ul", {}, items.filter(Boolean).map(item));
+  const trouble = (pairs) => h("dl", { class: "trouble" }, pairs.flatMap(([question, answer]) => [h("dt", {}, rich(question)), h("dd", {}, Array.isArray(answer) ? answer.flatMap((part) => (typeof part === "string" ? rich(part) : [part])) : rich(answer))]));
+  const slugOrHint = () => t(state.project.slug) || "de technische naam uit deel B";
+
+  /* Een schermafbeelding met de kaders als HTML erbovenop, of een rustig kader als het plaatje er nog niet is. */
+  function shot(id) {
+    const screen = SCREENS.get(id);
+    if (!screen) return null;
+    if (!screen.bestand) return shotTodo(screen);
+    const kaders = Array.isArray(screen.kaders) ? screen.kaders : [];
+    const img = h("img", { src: screen.bestand, alt: screen.alt || "", width: 1280, height: 800, decoding: "async" });
+    const frame = h("div", { class: "shot-frame" }, img, kaders.map(kaderBox));
+    const caption = h("figcaption", {},
+      kaders.length ? `Klik op: ${kaders.map((k) => k.label).join(", ")}. ` : "",
+      screen.standVan ? `Stand van ${longDate(screen.standVan)}. ` : "",
+      screen.uitleg ? ext(screen.uitleg, "De officiële uitleg") : null,
+      screen.uitleg ? ". " : "",
+      h("a", { href: screen.bestand, target: "_blank", rel: "noopener" }, "Open groot"), ".");
+    const figure = h("figure", { class: "shot", "data-scherm": id }, frame, caption);
+    img.addEventListener("error", () => figure.replaceWith(shotTodo(screen)));
+    return figure;
+  }
+  function kaderBox(k) {
+    const n = (value) => Math.min(100, Math.max(0, Number(value) || 0));
+    const box = h("div", { class: `kader${n(k.y) < 12 ? " below" : ""}${n(k.x) > 55 ? " right" : ""}`, "aria-hidden": "true" },
+      k.label ? h("span", { class: "kader-label" }, k.label) : null);
+    Object.assign(box.style, { left: `${n(k.x)}%`, top: `${n(k.y)}%`, width: `${n(k.b)}%`, height: `${n(k.h)}%` });
+    return box;
+  }
+  function shotTodo(screen) {
+    /* Zonder plaatje: het klikpad in tekst (schermen.json, veld klikpad), met de officiële uitleg erbij. */
+    const pad = Array.isArray(screen.klikpad) ? screen.klikpad : [];
+    return h("div", { class: "shot-todo", "data-scherm": screen.id },
+      h("strong", {}, "Waar je klikt"),
+      pad.length > 0 ? h("ol", {}, ...pad.map((stap) => h("li", {}, stap))) : h("span", {}, screen.alt || ""),
+      screen.uitleg ? h("span", {}, ext(screen.uitleg, "Bekijk de officiële uitleg")) : null);
+  }
+
+  /* De zes vragen van je halve pagina vullen meteen de velden van deel B: je typt niets twee keer. */
+  function halfPage() {
+    const c = state.content;
+    return [
+      field({ id: "hp-why", label: "1. Wat doet de tool, in twee zinnen, en welk probleem lost hij op?", obj: c, key: "why", rows: 4, hint: "Voor iemand die hem nog nooit zag. Komt in deel B bij Doel, stap 3.", example: "Het vrijwilligersrooster van een kinderboerderij: wie staat wanneer, en wie valt in. Nu belt de coördinator elke week rond omdat er een dienst uitvalt." }),
+      h("fieldset", { class: "box" }, h("legend", {}, "2. Voor wie, en hoeveel mensen?"),
+        h("p", { class: "hint" }, "Komt in deel B bij Mensen, stap 2. Bij benadering is goed."),
+        field({ id: "hp-count", label: "Hoeveel mensen ongeveer?", obj: state.people, key: "count", inputmode: "numeric", example: "45" }),
+        radios({ id: "hp-audience", legend: "Wie mag erin?", obj: state.people, key: "audience", change: rerender, options: [
+          ["internal", "Alleen mensen van de organisatie"],
+          ["external", "Ook mensen van buiten, met een eigen account"],
+          ["public", "Iedereen, zonder in te loggen"]] }),
+        state.people.audience === "public" ? note("Een openbare site zonder inloggen past niet in dit template: elke pagina hoort bij een inlog. Kies een van de andere twee antwoorden.", "bad") : null),
+      field({ id: "hp-processes", label: "3. De ene handeling waar het om draait, en wat daarin mis kan gaan", obj: c, key: "processes", rows: 3, hint: "Komt in deel B bij Processen, stap 3.", example: "Een vrijwilliger zet zich op een dienst. Mis kan gaan: twee mensen denken allebei dat de ander komt." }),
+      field({ id: "hp-sensitive", label: "4. Welke gegevens zijn gevoelig, en wie mag ze niet zien?", obj: c, key: "sensitive", rows: 3, hint: "Beschrijf ze, plak ze niet. Komt in deel B bij Gevoelige gegevens, stap 3.", example: "Telefoonnummers van vrijwilligers; een vrijwilliger ziet die van anderen niet." }),
+      field({ id: "hp-success", label: "5. Wanneer is het geslaagd, in één meetbare zin?", obj: c, key: "success", rows: 2, hint: "Komt in deel B bij Wanneer geslaagd, stap 3.", example: "Elke dienst van de komende maand heeft een naam, en het rooster gaat niet meer per mail." }),
+      field({ id: "hp-not", label: "6. Wat bouw je bewust niet?", obj: c, key: "notBuilding", rows: 3, hint: "Het belangrijkste antwoord. Alles wat je hier niet noemt, komt een keer terug als \"kan dat er even bij\". Komt in deel B bij Wat bouwen we niet, stap 3." }),
+    ];
+  }
+  const halfPageFilled = () => ["why", "processes", "sensitive", "success", "notBuilding"].filter((key) => t(state.content[key])).length;
+
+  /* De copy van deel A: de voorbereiding, overgenomen uit de oude voorbereidingspagina en handleiding 01, 02, 03 en 07. */
+  const PREP_STEPS = [
+    { title: "Welkom", body: prepWelcome },
+    { title: "Accounts aanmaken", body: () => ({
+      lead: "Je tool draait straks op je eigen accounts. Gebruik overal het e-mailadres van je organisatie, geen privéadres, en zet overal tweestapsverificatie aan.",
+      doen: [
+        P("Installeer eerst een authenticator-app op je telefoon, bijvoorbeeld Microsoft Authenticator of Google Authenticator. Maak daarna deze drie accounts aan, in deze volgorde."),
+        OL(
+          ["**GitHub.** Ga naar ", ext("https://github.com/signup", "github.com/signup"), " en maak een account aan. Zet daarna tweestapsverificatie aan: klik rechtsboven op je profielfoto, kies Settings, Password and authentication, Enable two-factor authentication. Bewaar de herstelcodes op een veilige plek. Heeft je organisatie al een GitHub-organisatie, vraag dan de beheerder om je uit te nodigen."],
+          ["**Vercel, met GitHub als login.** Ga naar ", ext("https://vercel.com/signup", "vercel.com/signup"), " en kies **Continue with GitHub**. Geef Vercel toestemming. Vraagt Vercel welk plan: kies **Hobby**. Een apart wachtwoord heb je dan niet nodig. Zet ook hier tweestapsverificatie aan: profielfoto, Account Settings, Authentication."],
+          ["**Claude, met een abonnement dat Claude Code bevat.** Ga naar ", ext("https://claude.ai", "claude.ai"), ", maak een account aan en kies een betaald abonnement waar Claude Code bij zit (Pro of Max). Wie een middag lang intensief bouwt, loopt met Max minder snel tegen de gebruikslimiet aan. Werkt je organisatie met de Console van Anthropic, dan kan het ook met een account daar."]),
+        shot("github-aanmelden"),
+        shot("vercel-aanmelden"),
+        P("**Neon**, de database, maak je nu niet aan. Die koppel je op de dag vanuit Vercel aan je project, en Vercel maakt het account dan voor je."),
+        h("h4", {}, "Waar het uitgavenplafond staat"),
+        P("Elke dienst krijgt een plafond dat zo laag staat als kan. Voeg geen betaalmethode toe waar niemand erom vraagt: zonder betaalmethode kan er ook niets in rekening worden gebracht."),
+        h("div", { class: "services" },
+          h("div", { class: "box" }, h("h4", {}, "GitHub"), P("Profielfoto, Settings, Billing and licensing, Budgets and alerts. Maak een budget voor **Actions** op nul en vink **Stop usage when budget limit is reached** aan. Werk je in een organisatie, doe het dan ook in de instellingen van de organisatie.")),
+          h("div", { class: "box" }, h("h4", {}, "Vercel"), P("Op het Hobby-plan is er niets in te stellen: er is geen betaalmethode en de dienst stopt bij de gratis limiet. Ga je later naar Pro, zet dan onder Settings, Billing de **Spend Management** aan met een harde grens.")),
+          h("div", { class: "box" }, h("h4", {}, "Claude"), P("Een abonnement heeft een vaste prijs per maand, dus er is geen plafond nodig. Werk je via de Console, zet daar bij de limieten een maandelijkse grens.")),
+          h("div", { class: "box" }, h("h4", {}, "Neon"), P("Komt later via Vercel, op het gratis plan. Het plafond is het plan zelf; handleiding 04 zegt wat je instelt als je ooit een betaald plan kiest."))),
+      ],
+      waarom: "Accounts op het adres van de organisatie blijven van de organisatie als jij weggaat. Tweestapsverificatie is de ene instelling die de meeste overnames van accounts voorkomt. Vercel met GitHub als login, omdat Vercel dan je code meteen kan zien. Een plafond per dienst, omdat een onverwachte rekening bijna altijd een vergeten plafond is.",
+      gelukt: [UL(
+        "Je bent ingelogd op GitHub, tweestapsverificatie staat aan en het budget voor Actions staat op nul.",
+        "Je bent via GitHub ingelogd op Vercel en tweestapsverificatie staat aan.",
+        "Je kunt inloggen op `claude.ai` en je abonnement staat op Pro of Max.")],
+      misgaat: [
+        ["Ik ben mijn telefoon met de authenticator-app kwijt", "Log bij GitHub in met een van de herstelcodes. Bij Vercel log je in via GitHub."],
+        ["Vercel vraagt om een creditcard", "Je zit in het aanmeldscherm van Pro. Ga terug en kies Hobby."],
+        ["Ik weet niet welk Claude-abonnement ik heb", "Klik in `claude.ai` linksonder op je naam en open de instellingen. Staat er Free, dan zit Claude Code er niet bij."],
+      ],
+    }) },
+    { title: "Installeren", body: () => ({
+      lead: "Vijf onderdelen, in deze volgorde. Bij alle installatieprogramma's zijn de standaardinstellingen goed, tenzij hieronder iets anders staat. Je moet zelf software mogen installeren; lukt dat niet, regel het dan eerst met je IT-afdeling.",
+      doen: [
+        OL(
+          ["**Git.** Windows: download Git for Windows via ", ext("https://git-scm.com/downloads/win", "git-scm.com/downloads/win"), ". Kies **Git for Windows/x64 Setup**, open het bestand en klik steeds op Next. macOS: niets doen, je Mac vraagt later zelf of hij de ontwikkelaarstools mag installeren; daar zit Git in."],
+          ["**Node.js versie 24.** Ga naar ", ext("https://nodejs.org/en/download", "nodejs.org/en/download"), " en kies versie 24 (LTS). Windows: de **Windows Installer (.msi)**, steeds Next; het vinkje voor extra tools mag uit blijven. macOS: de macOS Installer (`.pkg`), steeds Doorgaan."],
+          ["**VS Code.** Download het via ", ext("https://code.visualstudio.com/download", "code.visualstudio.com/download"), ". Windows: laat **Add to PATH** aangevinkt. macOS: sleep Visual Studio Code naar de map Apps (Programma's)."],
+          ["**Claude Code.** Open VS Code, klik links op Extensions (vier blokjes) of druk Ctrl+Shift+X (Cmd+Shift+X op een Mac). Zoek **Claude Code**, kies de extensie van Anthropic en klik Install. Open daarna het Claude-paneel via het oranje sterretje en klik **Sign in**. Je browser opent; log in en je komt vanzelf terug."],
+          ["**pnpm.** Dit heeft geen installatieprogramma. Laat Claude het doen: plak dit bericht in het Claude-paneel en druk op Enter.",
+            pre("Controleer of Git en Node.js versie 24 op deze laptop werken. Installeer daarna pnpm als dat er nog niet op staat. Laat tot slot een overzicht zien met de versies van Git, Node.js en pnpm. Leg in gewone taal uit wat je doet."),
+            "Claude vraagt toestemming voordat het iets uitvoert. Lees kort wat er staat en klik Yes."]),
+        shot("git-windows"),
+        shot("nodejs-download"),
+        shot("vscode-download"),
+        shot("claude-code-installeren"),
+      ],
+      waarom: "Git houdt elke versie van je werk bij. Node.js is de omgeving waarin je tool draait, en het template vraagt versie 24. VS Code is het programma waarin je werkt, Claude Code bouwt erin met je mee, en pnpm haalt de onderdelen op waar de tool op leunt.",
+      gelukt: [P("Claude toont een overzicht met een versienummer bij Git, bij Node.js (beginnend met 24) en bij pnpm. Maak er een schermafbeelding van.")],
+      misgaat: [
+        ["Ik mag geen software installeren", "Vraag je IT-afdeling om de vijf onderdelen te installeren, of gebruik een laptop waarop het wel mag."],
+        ["Ik zie geen Sign in, of inloggen lukt niet", "Sluit VS Code helemaal af en open het opnieuw. Ingelogd zijn op `claude.ai` in je browser is niet genoeg: Claude Code heeft een eigen inlogstap."],
+        ["Claude zegt dat Git of Node.js niet gevonden wordt", "VS Code stond open voordat de installatie klaar was. Sluit VS Code helemaal af en open het opnieuw. Helpt dat niet, herstart dan je laptop."],
+        ["Claude meldt een andere versie van Node.js dan 24", "Er stond al een andere versie op. Installeer versie 24 opnieuw, herstart VS Code en stuur het bericht opnieuw."],
+        ["Claude vraagt om je wachtwoord, of noemt sudo of administrator", "Stop hier. Voer zelf niets uit met beheerdersrechten en vraag hulp."],
+        ["Noodroute voor pnpm", "Alleen als het via Claude niet lukt. Open in VS Code het menu Terminal, New Terminal, en plak `npm install -g pnpm`. Meldt Windows dat scripts zijn uitgeschakeld, plak dan eerst `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` en bevestig met J of Y. Sluit daarna VS Code en open het opnieuw."],
+      ],
+    }) },
+    { title: "Git instellen", body: () => ({
+      lead: "Git wil weten wie je bent voordat je iets kunt vastleggen. Dat stel je één keer in.",
+      doen: [
+        P("Open in VS Code het menu Terminal, kies New Terminal, en plak deze twee regels, elk gevolgd door Enter. Vul je eigen naam in en hetzelfde e-mailadres als bij je GitHub-account."),
+        pre("git config --global user.name \"Voornaam Achternaam\"\ngit config --global user.email \"naam@organisatie.nl\""),
+        P("Op Windows plak je er nog een regel achter, zodat Git overweg kan met de diepe mappen van een project:"),
+        pre("git config --global core.longpaths true"),
+        P("Liever niet zelf typen? Vraag het Claude: \"Stel git in met mijn naam en e-mailadres, en laat daarna zien wat er staat.\" Claude vraagt dan naar je naam en adres."),
+      ],
+      waarom: "Elke wijziging die je vastlegt, draagt je naam en adres. Zonder die twee weigert VS Code de knop Commit met een foutmelding, en op de dag zelf kost het zoeken daarnaar onnodig tijd. Hetzelfde adres als op GitHub, zodat GitHub je wijzigingen aan jou koppelt.",
+      gelukt: [P("Plak `git config --global user.name` en daarna `git config --global user.email`. De terminal toont je naam en je adres. Op Windows toont `git config --global core.longpaths` het woord `true`.")],
+      misgaat: [
+        ["'git' is not recognized, of command not found", "Git staat er nog niet, of VS Code stond open tijdens de installatie. Ga terug naar stap 2 en herstart VS Code."],
+        ["Later: \"Author identity unknown\" of \"Please tell me who you are\"", "Deze stap is overgeslagen of niet gelukt. Doe hem opnieuw."],
+        ["Later: GitHub weigert met \"push declined due to email privacy restrictions\"", "Je e-mailadres staat bij GitHub op privé. Neem het noreply-adres dat GitHub toont onder Settings, Emails, en stel dat in als `user.email`."],
+      ],
+    }) },
+    { title: "Werkmap buiten OneDrive", body: () => ({
+      lead: "Maak één vaste map waarin al je projecten komen, op een plek die OneDrive (of iCloud op een Mac) niet bijhoudt.",
+      doen: [
+        UL("**Windows:** maak de map `C:\\Projecten` aan in de Verkenner.",
+          "**macOS:** maak de map `Projecten` aan in je thuismap (in Finder: Ga, Thuismap), niet in Documenten of op het bureaublad als die met iCloud worden gesynchroniseerd."),
+        P("Gebruik in de naam van de map geen spaties, geen &-teken en geen letters met accenten. Op de dag zelf zet VS Code je project als submap in deze map."),
+      ],
+      waarom: "Een project haalt tienduizenden kleine bestanden binnen. OneDrive probeert die allemaal te synchroniseren, zet ze soms op slot of maakt er alleen een verwijzing van, en dan faalt de installatie met vage fouten. Een spatie, &-teken of accent in het pad breekt sommige opdrachten van de werkomgeving. Op Windows zit Documenten vaak ongemerkt in OneDrive; daarom een map direct op `C:\\`.",
+      gelukt: [P("Open de map in VS Code via File, Open Folder. Het pad bovenin het venster of in de Verkenner bevat geen `OneDrive` (en op een Mac geen `iCloud` of `Mobile Documents`).")],
+      misgaat: [
+        ["Ik mag geen map aanmaken op C:\\", "Maak hem dan in je gebruikersmap, bijvoorbeeld `C:\\Users\\jouwnaam\\Projecten`, en controleer dat het pad geen OneDrive bevat."],
+        ["Mijn gebruikersnaam op de laptop heeft een spatie, &-teken of accent", "Dat kun je niet zelf veranderen. Kies de map op `C:\\` en meld het vooraf aan wie je begeleidt, zodat er op de dag rekening mee wordt gehouden."],
+        ["Ik heb al een project in OneDrive staan", "Laat het staan en begin opnieuw in de nieuwe map. Verplaatsen van een map met `node_modules` erin kost meer tijd dan opnieuw ophalen."],
+      ],
+    }) },
+    { title: "Controlescript draaien", body: () => ({
+      lead: "Een klein script loopt na of stap 2 tot en met 4 goed staan, zodat je het thuis weet en niet pas op de dag zelf.",
+      doen: [
+        UL(["**Windows:** ", h("a", { href: "controle-laptop.ps1", download: true }, "controle-laptop.ps1")],
+          ["**macOS:** ", h("a", { href: "controle-laptop.sh", download: true }, "controle-laptop.sh")]),
+        h("p", {}, "Download het script voor jouw computer. Hoe je het start en wat elke regel betekent, staat in ", ext(`${MATERIALS_URL}/blob/main/wizard/controle-laptop.md`, "de uitleg bij het controlescript"), ". Het script leest alleen en verandert niets aan je laptop."),
+        P("Op Windows, in kort: open **PowerShell**, ga naar de map met de download en start het script met:"),
+        pre("cd $HOME\\Downloads\npowershell -ExecutionPolicy Bypass -File .\\controle-laptop.ps1"),
+        P("Op een Mac: open **Terminal** en typ `cd ~/Downloads` en daarna `bash controle-laptop.sh`."),
+      ],
+      waarom: "De meeste tijd bij de start gaat verloren aan kleine dingen: een verkeerde versie van Node.js, git zonder naam, een werkmap in OneDrive. Het script vindt die in een minuut.",
+      gelukt: [P("Elk onderdeel staat op `[OK]` en de laatste regel zegt **Alles in orde**. Maak een schermafbeelding van de uitkomst en neem die mee.")],
+      misgaat: [
+        ["Een onderdeel staat op [ACTIE]", "Eronder staat wat je moet doen. Hoort het bij installeren, git instellen of de werkmap, ga dan terug naar die stap, los het op en draai het script opnieuw."],
+        ["Het script stelt voor pnpm een commando als administrator voor", "Gebruik liever de weg uit stap 2: laat Claude pnpm installeren, of plak `npm install -g pnpm`. Daar zijn geen beheerdersrechten voor nodig."],
+        ["Lange paden in Windows, of een site die niet bereikbaar is", "Dat los je niet zelf op: het eerste vraagt beheerdersrechten, het tweede zit in het netwerk van je werkgever. Stuur de melding van het script naar je IT-afdeling."],
+        ["Windows weigert het script te starten", ["Volg de aanwijzing in ", ext(`${MATERIALS_URL}/blob/main/wizard/controle-laptop.md`, "de uitleg bij het controlescript"), ". Voer niets uit met beheerdersrechten."]],
+        ["Ik kom er niet uit", "Stuur de schermafbeelding naar wie je begeleidt. Liever vooraf dan op de dag zelf."],
+      ],
+    }) },
+    { title: "Je halve pagina", body: () => ({
+      lead: "Het belangrijkste deel van de voorbereiding. Beantwoord zes vragen in gewone taal, samen niet meer dan een halve pagina. Je antwoorden gaan meteen naar deel B, zodat je niets twee keer typt.",
+      doen: [
+        P("Schrijf hieronder je antwoorden. Ze blijven in deze browser staan en staan straks al ingevuld in deel B."),
+        ...halfPage(),
+        note("Zet hier geen wachtwoorden of andere geheimen in. Gevoelige gegevens beschrijf je, je plakt ze niet.", "warn"),
+      ],
+      waarom: "Deze zes vragen zijn de kern van het projectplan. Wie ze thuis al heeft beantwoord, kan op de dag direct bouwen in plaats van nadenken over wat het moet worden. En de laatste vraag houdt het project klein genoeg om af te krijgen.",
+      gelukt: [P("Alle zes de vragen hebben een antwoord, en iemand die je project niet kent, snapt na het lezen wat de tool doet en wat hij niet doet.")],
+      misgaat: [
+        ["Ik weet het antwoord op een vraag nog niet", "Schrijf op wat je wel weet en wat je nog niet weet. Een open vraag is goed; een lege vraag niet."],
+        ["Mijn halve pagina wordt twee pagina's", "Dan probeert de tool te veel. Zet wat je wilt schrappen bij vraag 6: dat is niet weg, dat komt in een latere fase."],
+        ["Mijn antwoorden zijn weg", "De browser heeft ze niet bewaard, bijvoorbeeld in een privévenster of na het wissen van de browsergegevens. Open de wizard steeds in dezelfde browser, niet in een privévenster."],
+      ],
+    }) },
+    { title: "Klaar", body: () => ({
+      lead: "Wat je meeneemt naar de dag zelf, en wat je daar gaat doen.",
+      doen: [
+        UL("Je laptop met de oplader, met alles uit stap 2 tot en met 5 erop.",
+          "Je telefoon met de authenticator-app.",
+          "Je inloggegevens voor GitHub, Vercel en Claude, liefst in een wachtwoordmanager.",
+          "Je halve pagina uit stap 6: die staat in deze browser, dus neem de laptop mee waarop je hem schreef.",
+          "De schermafbeelding van het controlescript uit stap 5."),
+        H3("Je stand"),
+        h("ul", { class: "overview" }, PREP_STEPS.slice(1, 7).map((step, i) => {
+          const done = Boolean(parts.prep.done[i + 1]);
+          return h("li", {}, h("span", { class: "mark", "aria-hidden": "true" }, done ? "\u2713" : ""),
+            h("span", {}, h("a", { href: `#voorbereiden-${i + 1}`, onclick: (event) => { event.preventDefault(); openPart("voorbereiden", i + 1); } }, `Stap ${i + 1}: ${step.title}`), done ? ", klaar" : ", nog niet afgevinkt"));
+        })),
+        H3("Daarna"),
+        P("Wie wil, ontwerpt de tool thuis al in **deel B**: dat is de rest van de wizard, en je halve pagina staat daar al in. Op de dag zelf volg je **deel C**: acht stappen van een lege repo tot een tool die online staat."),
+      ],
+      gelukt: [P("Stap 1 tot en met 6 zijn afgevinkt en je hebt alles uit het lijstje hierboven bij de hand.")],
+      misgaat: [["Een stap lukt niet en de dag is al dichtbij", "Meld het vooraf, met een schermafbeelding van de foutmelding. Kom liever met één bekend probleem dan met een laptop waarvan je het niet weet."]],
+    }) },
+  ];
+
+  /* De copy van deel C: de acht stappen van de dag, uit de handleidingen 02 tot en met 09. */
+  const LIVE_STEPS = [
+    { title: "Op de dag: live zetten", body: liveIntro },
+    { title: "GitHub: Use this template", nav: "GitHub", body: () => ({
+      lead: "Je maakt je eigen kopie van het template, als privérepo.",
+      doen: [
+        OL(["Open ", ext(REPO_URL, "de repo van het template op GitHub"), " en log in."],
+          "Klik **Use this template** en dan **Create a new repository**.",
+          `Owner: je organisatie, of je eigen account als er (nog) geen organisatie is. Naam: \`${slugOrHint()}\`. Zichtbaarheid: **Private**. Laat "Include all branches" uit.`,
+          "Klik **Create repository**."),
+        shot("github-use-template"),
+        h("p", { class: "hint" }, "De details, zoals tweestapsverificatie voor de organisatie: ", guideLink("02", "02-github.md"), ", stap 3."),
+      ],
+      gelukt: [P("De nieuwe repo bestaat onder jouw naam of die van je organisatie, met `template/manifest.json` en `project.config.json` erin. Onder **Actions** loopt de workflow CI; na een paar minuten is hij groen.")],
+      misgaat: [
+        ["Use this template staat er niet", "Je bent niet ingelogd op GitHub, of je hebt geen leesrecht op het template. Log in, of vraag wie je begeleidt."],
+        ["De CI faalt direct na het aanmaken", "Meestal een netwerkfout bij het ophalen van de onderdelen. Open de run en klik **Re-run jobs**."],
+        ["De naam bestaat al", "Kies een andere naam. Gebruik die dan ook in Vercel (stap 4)."],
+      ],
+    }) },
+    { title: "VS Code: Clone Repository", nav: "VS Code", body: () => ({
+      lead: "Je haalt je nieuwe repo naar je laptop, in de werkmap uit deel A. Niet in OneDrive.",
+      doen: [
+        OL("Open VS Code. Druk Ctrl+Shift+P (Cmd+Shift+P op een Mac), typ `Git: Clone` en kies **Clone from GitHub**.",
+          "Vraagt VS Code om in te loggen bij GitHub: klik Allow, log in in de browser en klik **Authorize**.",
+          `Kies je nieuwe repo \`${slugOrHint()}\`.`,
+          "Kies als map je werkmap: `C:\\Projecten` (op een Mac `Projecten` in je thuismap).",
+          "Klik **Open** als VS Code vraagt of je de repo wilt openen, en daarna **Yes, I trust the authors**."),
+        shot("vscode-clone"),
+      ],
+      gelukt: [P("VS Code toont links de bestanden van je repo, linksonder staat `main`, en het pad van de map begint met `C:\\Projecten` en bevat geen `OneDrive`.")],
+      misgaat: [
+        ["Ik zie Clone from GitHub niet", "Kopieer op GitHub het adres onder **Code**, HTTPS, en plak dat in het veld van `Git: Clone`."],
+        ["De repo staat toch in OneDrive", "Sluit VS Code, verwijder die map en kloon opnieuw naar je werkmap."],
+        ["VS Code zegt dat Git niet gevonden wordt", "Git staat er nog niet goed op (deel A, stap 2). Herstart VS Code na de installatie."],
+      ],
+    }) },
+    { title: "De startprompt in het Claude-paneel", nav: "Startprompt", body: () => ({
+      lead: "Claude zet je configuratie, je projectplan en je checklist neer en stopt. Jij commit en synct, en zegt \"gedaan\".",
+      doen: [
+        designDone() ? promptBlock() : h("p", { class: "note warn" }, "Je startprompt is er nog niet: maak eerst deel B af. ", h("a", { href: "#ontwerpen", onclick: (event) => { event.preventDefault(); openPart("ontwerpen"); } }, "Naar deel B")),
+        OL("Open het Claude-paneel in VS Code: het oranje sterretje rechtsboven.",
+          "Plak de startprompt en druk op Enter. Vraagt Claude of hij een bestand mag schrijven: lees het en klik Yes.",
+          `Claude zet drie bestanden neer: \`project.config.json\`, \`docs/PROJECTPLAN.md\` en \`docs/handleiding/00-checklist-${t(state.project.slug) || "<slug>"}.md\`. Daarna stopt hij.`,
+          "Open **Source Control** (het icoon met de vertakking links). Typ een boodschap, bijvoorbeeld `docs: projectplan uit de wizard`, en klik **Commit**. Vraagt VS Code of hij alle wijzigingen moet meenemen: ja.",
+          "Klik **Sync Changes**.",
+          "Typ in het Claude-paneel: `gedaan`. Claude past nu het template toe en schrijft de eerste specificatie. Dat duurt even."),
+        shot("claude-paneel"),
+        shot("vscode-commit-sync"),
+      ],
+      gelukt: [UL("Na Sync Changes staan de drie bestanden op GitHub.",
+        "Na \"gedaan\" sluit Claude af met een oplevering: de versie v0.02, de open vragen, en het handwerk met de namen van de variabelen voor Vercel. Die namen heb je nodig in stap 5.")],
+      misgaat: [
+        ["Claude zegt dat een bestand al bestaat en afwijkt", "Lees wat Claude toont. Is het de neutrale versie van het template, zeg dan ja."],
+        ["Apply weigert omdat de werkmap niet schoon is", "Commit en sync eerst alles wat in Source Control staat, en zeg dan opnieuw \"gedaan\"."],
+        ["Sync Changes vraagt om in te loggen", "Log in bij GitHub in de browser die opent, en klik nog een keer Sync Changes."],
+        ["Claude vraagt om een wachtwoord, een token of een verbindingsstring", "Plak nooit een geheim in de chat. Claude heeft alleen de naam van een variabele nodig; de waarde zet jij in Vercel (stap 5)."],
+      ],
+    }) },
+    { title: "Vercel: Add New Project, Neon onder Storage", nav: "Vercel en Neon", body: () => ({
+      lead: "Vercel zet je tool online en bouwt hem opnieuw bij elke wijziging. Neon is de database, en die maak je hier vanuit Vercel aan.",
+      doen: [
+        OL(["Ga naar ", ext("https://vercel.com", "vercel.com"), " en log in met **Continue with GitHub**."],
+          "Klik **Add New**, **Project**. Klik bij je repo op **Import**. Staat hij er niet: klik **Adjust GitHub App Permissions** en geef Vercel toegang tot precies die repo.",
+          "Framework: Next.js, dat herkent Vercel zelf. Environment Variables: nog niets. Klik **Deploy**.",
+          "De eerste deploy mag mislukken met een melding over `DATABASE_URL`: er is nog geen database. Ga gewoon door.",
+          "Open in je project het tabblad **Storage**, klik **Create Database** en kies **Neon**. Regio: **Frankfurt (eu-central-1)**. Plan: gratis. Naam: de technische naam van je project. Koppel hem aan alle drie de omgevingen: Development, Preview en Production.",
+          "Controleer onder **Settings, Functions** dat de regio Frankfurt (fra1) is."),
+        shot("vercel-nieuw-project"),
+        shot("vercel-storage-neon"),
+        h("p", { class: "hint" }, "De details: ", guideLink("03", "03-vercel.md"), " en ", guideLink("04", "04-neon.md"), ". De dev-branch en de rest van handleiding 04 doe je later, voor lokaal werken."),
+      ],
+      gelukt: [P("Het project staat in je Vercel-dashboard, en onder **Settings, Environment Variables** staan nu `DATABASE_URL` en `DATABASE_URL_UNPOOLED`, beheerd door de koppeling met Neon.")],
+      misgaat: [
+        ["Mijn repo staat niet in de lijst", "Klik **Adjust GitHub App Permissions** en geef Vercel toegang tot de repo."],
+        ["Vercel vraagt om een creditcard", "Je zit in het aanmeldscherm van Pro. Ga terug en kies Hobby."],
+        ["De deploy is rood met een melding over DATABASE_URL", "Dat klopt nog: de database en de variabelen komen in deze stap en stap 5. In stap 6 bouwt Vercel opnieuw."],
+        ["Neon vraagt om een account", "Accepteer de voorwaarden in het venster van Vercel; dan maakt Vercel het account voor je."],
+      ],
+    }) },
+    { title: "Zet de variabelen die Claude noemt", nav: "Variabelen", body: () => {
+      const known = state.project.m365 === "yes" || state.project.m365 === "no";
+      const password = known && provider() === "password";
+      const entra = known && provider() === "entra";
+      return {
+        lead: "Claude noemt de namen. De waarden komen alleen van jou, en alleen in Vercel: nooit in de chat.",
+        doen: [
+          OL("Pak de oplevering van Claude uit stap 3 erbij: daar staat de lijst met variabelen. `pnpm template:apply` drukt hem ook af.",
+            "Ga in Vercel naar je project, **Settings, Environment Variables**.",
+            "Per naam: **Key** exact zoals Claude hem noemt. **Value** zonder aanhalingstekens en zonder lege regel erachter. Kies de omgevingen die de lijst noemt.",
+            "Zet **Sensitive** aan bij elk geheim voor Production en Preview.",
+            "Laat `DATABASE_URL` en `DATABASE_URL_UNPOOLED` met rust: die zijn van de koppeling met Neon."),
+          H3("De vaste namen, en hoe je de waarde maakt"),
+          UL(["`AUTH_SECRET`: twee verschillende waarden. Maak ze in de terminal van VS Code met de regel hieronder, twee keer. De eerste voor Production, de tweede voor Preview en Development samen.", pre("node -e \"console.log(require('crypto').randomBytes(32).toString('base64'))\"")],
+            ["`CRON_SECRET`: alleen Production, gemaakt met:", pre("node -e \"console.log(require('crypto').randomBytes(24).toString('hex'))\"")],
+            "`PRODUCTION_DB_ENDPOINT`: voor Production en Preview. Het endpoint-id van de productiebranch in Neon, iets als `ep-woord-woord-a1b2c3d4`. Open Neon via Vercel (Storage, je database, Open in Neon) en kijk bij de productiebranch.",
+            password || !known ? "`MFA_SECRET_KEY`, alleen bij de wachtwoordlogin: maak hem zoals `AUTH_SECRET`, met dezelfde waarde in Production en Preview." : null,
+            entra || !known ? "`AUTH_MICROSOFT_ENTRA_ID_ID`, `AUTH_MICROSOFT_ENTRA_ID_SECRET` en `AUTH_MICROSOFT_ENTRA_ID_ISSUER`, alleen bij inloggen met Microsoft: uit de app-registratie van handleiding 05." : null),
+          shot("vercel-variabelen"),
+          h("p", { class: "hint" }, "De volledige tabel per omgeving: ", guideLink("06", "06-variabelen-in-vercel.md"), "."),
+          dag2("Op dag 2 krijgt je laptop een eigen database, zodat een test je echte gegevens nooit raakt.", "devprod"),
+        ],
+        gelukt: [P("Elke naam uit de lijst van Claude staat in Vercel, behalve wat \"alleen lokaal\" heet (`AUTH_DEV_LOGIN`, `SEED_TARGET`). `AUTH_SECRET` staat er twee keer: één regel voor Production, één voor Preview en Development.")],
+        misgaat: [
+          ["Ik weet niet welke omgeving ik moet kiezen", ["De tabel in ", guideLink("06", "06-variabelen-in-vercel.md"), " zegt het per variabele."]],
+          ["Een fout met \"invalid URL\" of een \\n erin", "Er is een lege regel of een aanhalingsteken meegekopieerd in de Value. Plak de waarde opnieuw."],
+          ["Sensitive kan niet aan voor Development", "Dat klopt: Vercel staat het alleen toe voor Production en Preview."],
+          ["Ik heb per ongeluk een geheim in de chat geplakt", "Maak een nieuwe waarde en zet die in Vercel. De oude geldt als gelekt."],
+        ],
+      };
+    } },
+    { title: "Commit en Sync: je tool gaat online", nav: "Online", body: () => ({
+      lead: "Alles wat Claude maakte gaat naar GitHub, en Vercel zet het online.",
+      doen: [
+        OL("Open **Source Control** in VS Code. Je ziet wat Claude maakte, met onder meer `template.lock.json` en `docs/SPEC.md`.",
+          "Typ als boodschap de versie die Claude noemde, bijvoorbeeld `v0.02: eerste specificatie`. Klik **Commit** en dan **Sync Changes**.",
+          "Vercel bouwt nu vanzelf. Dat duurt een paar minuten. Het bouwen zet ook de tabellen in de database.",
+          "Open in Vercel je project. Staat de deploy op **Ready**, klik dan op het adres onder **Domains**."),
+        shot("vscode-commit-sync"),
+        P("Vandaag werk je rechtstreeks op `main`. Dat mag zolang je alleen aan het project werkt en er nog geen echte gebruikers zijn. Vanaf stap 8 ga je via `release/next`."),
+        h("p", { class: "hint" }, "De details en de rooktest: ", guideLink("08", "08-eerste-deploy-en-rooktest.md"), "."),
+      ],
+      gelukt: [P(`De deploy is groen (Ready) en je adres, iets als \`${t(state.project.slug) || "jouw-tool"}.vercel.app\`, toont het inlogscherm met de versie die Claude noemde.`)],
+      misgaat: [
+        ["De bouw faalt op `pnpm db:deploy`", "Er ontbreekt een variabele (stap 5), of de database is niet gekoppeld (stap 4). Zet het goed en klik in Vercel bij de deploy op **Redeploy**."],
+        ["Een variabele die ik net zette, doet niets", "Een variabele geldt pas na een nieuwe deploy: **Deployments**, de laatste, **Redeploy**."],
+        ["Het inlogscherm toont een oude versie", "De bouw loopt nog, of de browser toont een oude kopie. Wacht even en ververs de pagina."],
+        ["De bouw faalt met een andere melding", "Kopieer de melding uit de build-log van Vercel en geef hem aan Claude."],
+      ],
+    }) },
+    { title: "Je eerste account en tweestapsverificatie", nav: "Eerste account", body: () => {
+      const entra = state.project.m365 === "yes";
+      const site = `https://${t(state.project.slug) || "mijn-tool"}.vercel.app`;
+      return {
+        lead: "De eerste beheerder ben jij. Je maakt het account rechtstreeks op de productiedatabase, met een tijdelijk bestand dat je meteen weer weggooit.",
+        doen: [
+          entra ? h("p", { class: "note" }, "Je koos in deel B voor inloggen met Microsoft. Dan maak je geen account aan, maar registreert een beheerder van de tenant de app en wijst rollen toe: volg ", guideLink("05", "05-entra.md"), " en daarna 11. De stappen hieronder gelden voor de wachtwoordlogin.") : null,
+          OL("Open Neon via Vercel (Storage, je database, Open in Neon). Kies de **productiebranch** en kopieer onder **Connect** de verbindingsstring.",
+            `Maak in VS Code in de hoofdmap van je project een nieuw bestand \`.env.eerste-account\` met twee regels: \`DATABASE_URL=\` met daarachter de verbindingsstring, en \`AUTH_URL=\` met je eigen webadres, zoals \`${site}\`. Git negeert dit bestand.`,
+            ["Open de terminal (Terminal, New Terminal) en plak, met je eigen adres en naam:", pre("node --env-file=.env.eerste-account node_modules/tsx/dist/cli.mjs scripts/invite.ts -- jouw@adres.nl \"Jouw Naam\"")],
+            "Verwijder `.env.eerste-account` meteen daarna. Plak de verbindingsstring nooit in de chat.",
+            "Het script toont een koppeling die zeven dagen geldig is. Open hem en kies een wachtwoord van minstens twaalf tekens. Een zin die je onthoudt is beter dan een moeilijk woord.",
+            "Log in met je adres en wachtwoord. Je gaat meteen door naar **Tweestapsverificatie instellen**: scan de QR-code met je authenticator-app en vul de code van zes cijfers in."),
+          h("p", { class: "hint" }, "Alles hierover: ", guideLink("05b", "05b-wachtwoordlogin.md"), ", stap 1 tot en met 3."),
+        ],
+        gelukt: [P("Je ziet \"Tweestapsverificatie staat aan.\" Log opnieuw in: adres, wachtwoord, en daarna de code. In de rail staan je naam, je rol en Beheer.")],
+        misgaat: [
+          ["Het script meldt dat `tsx` ontbreekt", "De onderdelen zijn nog niet opgehaald. Draai eerst `pnpm install` in de terminal, of vraag het Claude."],
+          ["De koppeling begint met localhost", "`AUTH_URL` ontbreekt in `.env.eerste-account`. Zet hem erin en draai het script opnieuw."],
+          ["Inloggen lukt niet: het account bestaat niet", "Je hebt het account op de dev-database gemaakt in plaats van op productie. Gebruik de verbindingsstring van de productiebranch."],
+          ["Een code wordt steeds geweigerd", "De klok van je telefoon loopt af. Zet de tijd op automatisch."],
+          ["\"Deze stap is verlopen of al afgerond\"", "Er zat meer dan een kwartier tussen inloggen en de code. Log gewoon opnieuw in."],
+        ],
+      };
+    } },
+    { title: "Vanaf nu: werken via release/next", nav: "Vanaf nu", body: () => ({
+      lead: "Je tool staat online. Elke volgende ronde ga je eerst naar een vaste testomgeving, en pas daarna live.",
+      doen: [
+        OL("**Begin op een verse `main`.** Klik linksonder in VS Code op de naam van de branch, kies `main`, en kies in Source Control bij de drie puntjes **Pull**.",
+          "**Maak de branch.** Klik linksonder op `main`, kies **Create new branch...** en typ `release/next`.",
+          "**Laat Claude bouwen.** Claude levert op met een versie en met wat jij nog met de hand doet.",
+          "**Commit** in Source Control en klik **Publish Branch** (de volgende keer heet die knop **Sync Changes**).",
+          "**Open de pull request.** Op GitHub staat een gele balk met **Compare & pull request**. Base is `main`, compare is `release/next`. Titel: de versie.",
+          "**Test op de preview.** Vercel bouwt een preview met een eigen kopie van de database. Log in en klik door wat er nieuw is.",
+          "**Merge.** In de pull request: **Merge pull request**, **Confirm merge**. Nu gaat het live.",
+          "**Ruim op.** Klik op GitHub **Delete branch**, en verwijder in VS Code de branch `release/next` (Ctrl+Shift+P, **Git: Delete Branch...**). De volgende ronde begin je weer bij 1."),
+        h("p", { class: "hint" }, "Alle stappen met uitleg: ", guideLink("09", "09-werken-met-een-releasebranch.md"), ". Wat er daarna nog moet, zoals lokaal werken en de dev-branch, staat in handleiding 01 onder deel 3."),
+        dag2("Op dag 2 oefen je dit: een preview met een eigen database, en een versie terugzetten als het misgaat.", "devprod-6"),
+      ],
+      waarom: "Op `main` zet Vercel alles meteen op productie, ook een fout. Op `release/next` zie je eerst of het werkt. Gaat er iets mis, dan merkt alleen jij het.",
+      gelukt: [P("Elke ronde heeft een pull request met een groene CI en een groene check van Vercel, en na het mergen toont je tool de nieuwe versie.")],
+      misgaat: [
+        ["Na Publish Branch bouwt Vercel niets", "Zonder pull request bouwt Vercel geen preview. Open de pull request."],
+        ["Create new branch zegt dat `release/next` al bestaat", "De vorige ronde is niet opgeruimd. Doe eerst stap 8, dan stap 1."],
+        ["De pull request heeft een conflict met `main`", "Vraag Claude om het conflict op te lossen; jij commit daarna."],
+        ["Een migratie faalt in de bouw van de preview", "Precies waarvoor de preview er is: productie is niet geraakt. Geef Claude de melding uit de build-log."],
+      ],
+    }) },
+  ];
+  const GUIDES = { voorbereiden: { key: "prep", steps: PREP_STEPS }, live: { key: "live", steps: LIVE_STEPS } };
+
+  function prepWelcome() {
+    const texts = {
+      voorbereiden: "Accounts, software, git, een werkmap, het controlescript en je halve pagina. Thuis, een paar dagen van tevoren.",
+      ontwerpen: "Wat je tool doet, voor wie, met welke rollen en welke huisstijl. Levert één ding op: de startprompt voor Claude Code.",
+      live: "Op de dag zelf: van een lege repo tot een tool die online staat, in acht stappen.",
+    };
+    const cards = PARTS.map((part) => {
+      const progress = partProgress(part.id);
+      const first = part.id === "voorbereiden";
+      const label = first ? (doneCount("prep") ? `Verder bij stap ${firstOpen("prep", 7)}` : "Begin met deel A") : `Naar deel ${part.letter}`;
+      return h("div", { class: "box" }, h("h3", {}, `Deel ${part.letter}. ${part.name}`), h("p", { class: "hint" }, `${capital(part.time)}. Stand: ${progress.text}.`), h("p", {}, texts[part.id]),
+        h("div", { class: "row" }, h("a", { class: `button${first ? " primary" : ""}`, href: `#${part.id}`, onclick: (event) => { event.preventDefault(); openPart(part.id, first ? firstOpen("prep", 7) : undefined); } }, label)));
+    });
+    const out = [
+      h("p", { class: "lead" }, "Met deze wizard bouw je met Claude Code een eigen webtool op het template, in drie delen. Je kunt stoppen wanneer je wilt: de wizard onthoudt waar je was."),
+      h("div", { class: "cards" }, cards),
+      dag2("Na de eerste dag: je tool gescheiden in dev en prod, en AI die voorstelt in een vaste vorm, met de kosten in beeld."),
+      H3("Wat er met je antwoorden gebeurt"),
+      P("Niets verlaat je browser. De wizard heeft geen server en stuurt niets weg; alleen de schermafbeeldingen, de lettertypes en het logo komen uit dezelfde map. Je antwoorden en vinkjes staan alleen in de opslag van deze browser, onder de sleutels `foundation-wizard:v1` en `foundation-wizard-delen:v1`. Zet er geen wachtwoorden of andere geheimen in."),
+    ];
+    if (!storageOk) out.push(note("Deze browser bewaart hier niets, bijvoorbeeld in een privévenster. De wizard werkt wel, maar je antwoorden zijn weg als je het venster sluit. Kopieer je startprompt in deel B voordat je stopt.", "warn"));
+    out.push(resetBlock());
+    return { custom: out };
+  }
+  function liveIntro() {
+    return { custom: [
+      h("p", { class: "lead" }, "Acht stappen van een lege repo tot een tool die online staat. Met de voorbereiding uit deel A en de startprompt uit deel B gaat dat in ongeveer een uur."),
+      H3("Wat je nodig hebt"),
+      h("ul", { class: "overview" },
+        h("li", {}, h("span", { class: "mark", "aria-hidden": "true" }, doneCount("prep") >= 6 ? "\u2713" : ""), h("span", {}, `Deel A, voorbereiden: ${partProgress("voorbereiden").text}.`)),
+        h("li", {}, h("span", { class: "mark", "aria-hidden": "true" }, designDone() ? "\u2713" : ""), h("span", {}, designDone() ? "Deel B, je startprompt: klaar." : "Deel B, je startprompt: nog niet klaar. Die heb je nodig in stap 3."))),
+      H3("De acht stappen"),
+      h("ol", {}, LIVE_STEPS.slice(1).map((step, i) => h("li", {}, h("a", { href: `#live-${i + 1}`, onclick: (event) => { event.preventDefault(); openPart("live", i + 1); } }, step.title), parts.live.done[i + 1] ? ", klaar" : ""))),
+      P("Elke stap zegt wat je doet, hoe je ziet dat het gelukt is, en wat je doet als het misgaat. Vink een stap af als hij klaar is."),
+    ] };
+  }
+  /* De eerste stap die nog niet is afgevinkt. */
+  function firstOpen(key, last) {
+    for (let n = 1; n <= last; n += 1) if (!parts[key].done[n]) return n;
+    return last;
+  }
+
+  function renderGuideProgress(id) {
+    const guide = GUIDES[id];
+    const part = partById(id);
+    const data = parts[guide.key];
+    const last = guide.steps.length - 1;
+    const count = doneCount(guide.key);
+    const fill = h("span");
+    fill.style.width = `${Math.round((count / last) * 100)}%`;
+    document.getElementById("progress").replaceChildren(
+      h("p", { class: "progress-text" }, `Deel ${part.letter}, ${part.time}. ${count === last ? "Alle stappen zijn klaar." : `${count} van ${last} stappen klaar.`}`),
+      h("div", { class: "bar", "aria-hidden": "true" }, fill));
+    const list = document.getElementById("steps");
+    list.style.gridTemplateColumns = `repeat(${last}, minmax(0, 1fr))`;
+    list.replaceChildren(...guide.steps.slice(1).map((step, i) => {
+      const n = i + 1;
+      const done = Boolean(data.done[n]);
+      const current = n === data.step;
+      return h("li", {}, h("a", { href: `#${id}-${n}`, class: `step${done ? " done" : ""}`, "aria-current": current ? "step" : null, onclick: (event) => { event.preventDefault(); openPart(id, n); } },
+        h("span", { class: "num", "aria-hidden": "true" }, done && !current ? "\u2713" : String(n)),
+        h("span", { class: "lbl" }, h("span", { class: "sr-only" }, `Stap ${n}: `), step.nav || step.title, done ? h("span", { class: "sr-only" }, ", klaar") : null)));
+    }));
+  }
+  function renderGuide(id) {
+    const guide = GUIDES[id];
+    const data = parts[guide.key];
+    const last = guide.steps.length - 1;
+    const step = data.step;
+    const spec = guide.steps[step];
+    const body = spec.body();
+    const heading = h("h2", { id: "step-heading", tabindex: "-1" }, step === 0 ? spec.title : `Stap ${step} van ${last}: ${spec.title}`);
+    const section = h("section", { "aria-labelledby": "step-heading", "data-deel": id, "data-stap": String(step) }, heading);
+    if (body.custom) section.append(...body.custom.filter(Boolean));
+    else {
+      section.append(lead(body.lead), H3("Wat je doet"), ...body.doen.filter(Boolean));
+      if (body.waarom) section.append(H3("Waarom"), P(body.waarom));
+      section.append(H3("Zo zie je dat het gelukt is"), ...body.gelukt, H3("Als het misgaat"), trouble(body.misgaat), doneBox(guide.key, step, last));
+    }
+    section.append(guideActions(id, step, last));
+    return section;
+  }
+  function doneBox(key, n, last) {
+    const input = h("input", { type: "checkbox", id: `klaar-${n}`, "aria-describedby": `klaar-${n}-hint` });
+    input.checked = Boolean(parts[key].done[n]);
+    const box = h("div", { class: `done-box${input.checked ? " checked" : ""}` }, input,
+      h("div", {}, h("label", { for: `klaar-${n}` }, "Deze stap is klaar"),
+        h("p", { class: "hint", id: `klaar-${n}-hint` }, n === last && key === "prep" ? "Vink aan als je alles bij de hand hebt." : "Vink aan als je ziet wat onder \"Zo zie je dat het gelukt is\" staat.")));
+    input.addEventListener("change", () => {
+      if (input.checked) parts[key].done[n] = true; else delete parts[key].done[n];
+      box.classList.toggle("checked", input.checked);
+      saveParts();
+      renderHeader();
+      renderProgress();
+      announce(`Stap ${n} ${input.checked ? "is klaar" : "is niet meer afgevinkt"}. ${doneCount(key)} van ${last} stappen klaar.`);
+    });
+    return box;
+  }
+  function guideActions(id, step, last) {
+    const key = GUIDES[id].key;
+    const toStep = (n) => () => openPart(id, n);
+    let back = h("span");
+    if (step > 0) back = h("button", { type: "button", onclick: toStep(step - 1) }, "Vorige");
+    else if (id === "live") back = h("button", { type: "button", onclick: () => openPart("ontwerpen") }, "Terug naar deel B");
+    let forward = null;
+    if (step === 0) forward = h("button", { type: "button", class: "primary", onclick: toStep(firstOpen(key, last)) }, doneCount(key) > 0 ? `Verder bij stap ${firstOpen(key, last)}` : "Begin bij stap 1");
+    else if (step < last) forward = h("button", { type: "button", class: "primary", onclick: toStep(step + 1) }, "Volgende");
+    else if (id === "voorbereiden") forward = h("button", { type: "button", class: "primary", onclick: () => openPart("ontwerpen") }, "Door naar deel B: je tool ontwerpen");
+    return h("div", { class: "actions" }, back, forward);
+  }
+
+  /* Deel B, stap 0: wat dit deel oplevert. */
+  function designIntro() {
+    const filled = halfPageFilled();
+    const out = [
+      h("p", { class: "lead" }, "Dit deel stelt de vragen die een nieuw project uit het template nodig heeft, en maakt van je antwoorden één ding: de startprompt voor Claude Code."),
+      h("h3", {}, "Wat je krijgt"),
+      h("p", {}, "Een startprompt om in het Claude-paneel te plakken (deel C, stap 3). Er zitten drie bestanden in, en Claude zet ze zelf op hun plek:"),
+      h("ul", {},
+        h("li", {}, rich("`project.config.json`: naam, rollen, inlog, modules en huisstijl, geldig volgens het schema van het template.")),
+        h("li", {}, rich("`docs/PROJECTPLAN.md`: het projectplan met de twaalf vaste kopjes, ingevuld met je antwoorden.")),
+        h("li", {}, rich("`docs/handleiding/00-checklist-<slug>.md`: je eigen checklist voor accounts, toegang en kosten."))),
+      h("p", {}, rich("Kies je een eigen logo, dan zet je `logo.svg` zelf neer. De losse bestanden kun je als reserve ook downloaden.")),
+      h("h3", {}, "Hoe lang het duurt"),
+      h("p", {}, `Acht stappen, samen ongeveer ${TOTAL_MINUTES} minuten. De meeste tijd zit in stap 3, de inhoud: dat is het denkwerk van het project. Je kunt stoppen en later verdergaan.`),
+    ];
+    if (filled) out.push(note(`Je halve pagina uit deel A staat al in stap 2 en 3: ${filled} van de vijf tekstvragen zijn ingevuld.`, "good"));
+    if (state.maxStep > 0 && state.savedAt) out.push(h("p", {}, `Je antwoorden van ${new Date(state.savedAt).toLocaleString("nl-NL", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })} staan nog klaar.`));
+    if (!storageOk) out.push(note("Deze browser bewaart hier niets, bijvoorbeeld in een privévenster. Sluit het venster dus niet voordat je de startprompt hebt gekopieerd.", "warn"));
+    return out;
+  }
+  function resetBlock() {
+    const box = h("div", { class: "reset" });
+    const idle = (focus) => {
+      const button = h("button", { type: "button", class: "danger", onclick: ask }, "Opnieuw beginnen");
+      box.replaceChildren(h("h3", {}, "Opnieuw beginnen"), h("p", {}, "Wist al je antwoorden en vinkjes in deze browser, in alle drie de delen."), button);
+      if (focus === true) button.focus();
+    };
+    const ask = () => {
+      const no = h("button", { type: "button", onclick: () => idle(true) }, "Nee, terug");
+      box.replaceChildren(h("h3", {}, "Opnieuw beginnen"), h("p", {}, "Alle antwoorden en vinkjes in deze browser worden gewist. Weet je het zeker?"),
+        h("div", { class: "row" }, h("button", { type: "button", class: "danger", onclick: wipe }, "Ja, alles wissen"), no));
+      no.focus();
+    };
+    idle(false);
+    return box;
+  }
+  function wipe() {
+    for (const key of [STORAGE_KEY, PARTS_KEY, OLD_PREP_KEY]) {
+      try { window.localStorage.removeItem(key); } catch { storageOk = false; }
+    }
+    state = freshState();
+    parts = freshParts();
+    shown.clear();
+    summary = { step: -1, items: [] };
+    render(true);
+    announce("Alle antwoorden zijn gewist.");
+  }
+
+  /* Stap 1: projectbasis. */
+  function basis() {
+    const p = state.project;
+    const out = [
+      h("p", { class: "lead" }, "De naam, de organisatie en de taal. De laatste vraag bepaalt hoe mensen inloggen."),
+      field({ id: "f-name", label: "Naam van het project", obj: p, key: "name", hint: "Zoals hij in de titelbalk en op het inlogscherm staat, 2 tot 60 tekens.", example: EXAMPLE.name, input: onName }),
+      field({ id: "f-slug", label: "Technische naam (slug)", obj: p, key: "slug", code: true,
+        hint: "Voor de repo, het Vercel-project, de database en de cookies: kleine letters, cijfers en koppeltekens, beginnend met een letter, 2 tot 31 tekens. Volgt de naam tot je hem zelf aanpast, en verandert na de start nooit meer.",
+        input: (value) => { p.slugEdited = value.trim() !== ""; },
+        blur: (input) => {
+          const value = input.value.trim() ? input.value.trim().toLowerCase() : slugify(p.name);
+          if (!input.value.trim()) p.slugEdited = false;
+          if (value !== input.value) { input.value = value; p.slug = value; save(); }
+        } }),
+      field({ id: "f-description", label: "Omschrijving in één zin", obj: p, key: "description", rows: 2, max: 200, hint: "Wat het project is, in 10 tot 200 tekens. Komt in de metadata van de pagina en in README.md.", example: EXAMPLE.description }),
+      field({ id: "f-org", label: "Organisatie", obj: p, key: "organisation", autocomplete: "organization", example: EXAMPLE.organisation }),
+      field({ id: "f-domain", label: "Maildomein (optioneel)", obj: p, key: "mailDomain", code: true, hint: "Het domein van de mailadressen van de organisatie, zoals voorbeeld.nl, zonder @.",
+        blur: (input) => { const value = domainOf(input.value); if (value !== input.value) { input.value = value; p.mailDomain = value; save(); } } }),
+      field({ id: "f-owner", label: "Eigenaar (optioneel)", obj: p, key: "owner", autocomplete: "name", hint: "De persoon die bij twijfel beslist. Voor het projectplan en de checklist.", example: EXAMPLE.owner }),
+      radios({ id: "f-lang", legend: "Taal van de interface", obj: p, key: "uiLanguage", hint: "De documentatie is altijd Nederlands.", options: [["nl", "Nederlands"], ["en", "Engels"]] }),
+      field({ id: "f-tz", label: "Tijdzone", obj: p, key: "timezone", code: true, list: "tz-list", hint: "Voor datums en voor het rooster van taken die vanzelf draaien. Een IANA-naam, zoals Europe/Amsterdam." }),
+      radios({ id: "f-m365", legend: "Is er een Microsoft 365-tenant waar een beheerder een app mag registreren?", obj: p, key: "m365", change: rerender,
+        hint: "Dit bepaalt de inlog. Ja heeft de voorkeur: er zijn geen wachtwoorden te beheren, en wie vertrekt, verliest vanzelf de toegang.",
+        options: [
+          ["yes", "Ja", "Inloggen met het Microsoft-account van de organisatie (Entra). Mail gaat dan standaard via een gedeelde postbus (Microsoft Graph)."],
+          ["no", "Nee", "Eigen accounts met wachtwoord en tweestapsverificatie. Mail gaat via een mailaanbieder (SMTP), want uitnodigingen en herstelkoppelingen gaan per mail."],
+        ] }),
+    ];
+    if (p.m365 === "no") {
+      out.push(radios({ id: "f-mfa", legend: "Voor wie is tweestapsverificatie verplicht?", obj: p, key: "mfa", options: [
+        ["admins", "Voor beheerders (aanbevolen)"], ["everyone", "Voor iedereen"], ["nobody", "Voor niemand", "Dan beschermt alleen een wachtwoord ook de beheerders. Kies dit alleen met een goede reden."]] }));
+    }
+    return out;
+  }
+  function onName(value) {
+    const p = state.project;
+    if (!p.slugEdited) {
+      p.slug = slugify(value);
+      const slug = document.getElementById("f-slug");
+      if (slug) slug.value = p.slug;
+    }
+    if (!state.brand.shortEdited) state.brand.shortName = shortFrom(value);
+    save();
+  }
+
+  /* Stap 2: mensen en rollen. */
+  function people() {
+    const out = [
+      h("p", { class: "lead" }, "Wie gebruikt het, en wat mogen ze? Een rol is een set rechten, geen functie: twee functies met dezelfde rechten zijn één rol."),
+      h("h3", {}, "Rollen"),
+      h("p", { id: "role-list", tabindex: "-1" }, "Hoogstens acht rollen, en de rol admin is er altijd. Wie, mag en mag niet zijn optioneel; ze worden kopje 3 van het plan, en daaruit volgt de rechtenmatrix."),
+      exampleBox(EXAMPLE.roles),
+      ...state.roles.map(roleBlock),
+      state.roles.length < 8 ? h("button", { type: "button", id: "role-add", onclick: addRole }, "Rol toevoegen") : h("p", { class: "hint" }, "Acht rollen is het maximum."),
+      h("h3", {}, "Gebruikers"),
+      field({ id: "f-count", label: "Hoeveel mensen gaan het ongeveer gebruiken? (optioneel)", obj: state.people, key: "count", inputmode: "numeric", hint: "Een schatting in een heel getal is genoeg.", example: "45" }),
+      radios({ id: "f-audience", legend: "Wie mag erin?", obj: state.people, key: "audience", change: rerender, options: [
+        ["internal", "Alleen mensen van de organisatie"],
+        ["external", "Ook mensen van buiten, met een eigen account", provider() === "entra" ? "Zij worden gast in de Microsoft-tenant van de organisatie. Een apart klantportaal komt later als module." : "Een beheerder nodigt ze uit, net als de anderen. Een apart klantportaal komt later als module."],
+        ["public", "Iedereen, zonder in te loggen"]] }),
+    ];
+    if (state.people.audience === "public") out.push(note("Dit template is gemaakt voor een tool achter een inlog: elke pagina hoort bij een sessie, en de rechten komen uit de rollen. Een openbare site zonder inloggen past er niet in. Kies daarvoor een ander startpunt, of kies hierboven een van de andere twee antwoorden.", "bad"));
+    return out;
+  }
+  function roleBlock(role, i) {
+    const n = i + 1;
+    const box = h("fieldset", { class: "box" }, h("legend", {}, role.locked ? `Rol ${n}: beheerder` : `Rol ${n}`),
+      h("div", { class: "pair" },
+        field({ id: `r-${i}-nl`, label: "Label in het Nederlands", obj: role, key: "nl", input: (value) => onRoleLabel(role, i, value) }),
+        field({ id: `r-${i}-en`, label: "Label in het Engels", obj: role, key: "en" })));
+    if (role.locked) box.append(h("p", { class: "hint" }, rich("Waarde in code: `admin`. Deze rol is altijd beheerder en kan niet weg, anders kan niemand Beheer openen.")));
+    else {
+      box.append(field({ id: `r-${i}-value`, label: "Waarde in code en database", obj: role, key: "value", code: true,
+        hint: "Afgeleid uit het Nederlandse label: kleine letters, cijfers en liggende streepjes. Code is Engels, dus een Engelse waarde zoals `volunteer` past beter.",
+        input: (value) => { role.valueEdited = value.trim() !== ""; },
+        blur: (input) => { if (!input.value.trim()) { role.value = snake(role.nl); role.valueEdited = false; input.value = role.value; save(); } } }));
+      box.append(checkbox({ id: `r-${i}-admin`, label: "Beheerder: deze rol mag alles, ook Beheer", obj: role, key: "admin" }));
+    }
+    box.append(h("div", { class: "trio" },
+      field({ id: `r-${i}-who`, label: "Wie zijn dat?", obj: role, key: "who" }),
+      field({ id: `r-${i}-may`, label: "Wat mogen ze?", obj: role, key: "may" }),
+      field({ id: `r-${i}-maynot`, label: "Wat mogen ze niet?", obj: role, key: "mayNot" })));
+    if (!role.locked) box.append(h("button", { type: "button", class: "danger", onclick: () => removeRole(i) }, `Rol ${n} verwijderen`));
+    return box;
+  }
+  function onRoleLabel(role, i, value) {
+    if (role.locked || role.valueEdited) return;
+    role.value = snake(value);
+    const input = document.getElementById(`r-${i}-value`);
+    if (input) input.value = role.value;
+    save();
+  }
+  function addRole() {
+    if (state.roles.length >= 8) return;
+    state.roles.push(blankRole());
+    shown.clear();
+    save();
+    renderStep();
+    document.getElementById(`r-${state.roles.length - 1}-nl`).focus();
+    announce(`Rol ${state.roles.length} is toegevoegd.`);
+  }
+  function removeRole(i) {
+    state.roles.splice(i, 1);
+    shown.clear();
+    save();
+    renderStep();
+    document.getElementById("role-add").focus();
+    announce(`Rol ${i + 1} is verwijderd.`);
+  }
+
+  /* Stap 3: de inhoud van het projectplan. */
+  function content() {
+    return [
+      h("p", { class: "lead" }, "Het denkwerk. Schrijf in gewone taal wat er bestaat en wat ermee gebeurt, niet hoe het gebouwd wordt. Leeg laten mag: dan blijft in het plan de aanwijzing staan en vraagt Claude ernaar."),
+      halfPageFilled() ? note("Wat je in deel A bij je halve pagina schreef, staat hier al. Vul aan waar het kan.", "good") : null,
+      ...CONTENT.map(([key, id, label, hint, example, rows]) => field({ id, label, obj: state.content, key, rows, hint, example })),
+      dag2("Op dag 2: welke gegevens je wel en nooit naar AI stuurt, en hoe je dat vastlegt.", "ontwerpen-4"),
+    ];
+  }
+
+  /* Stap 4: koppelingen en modules. */
+  function modulesStep() {
+    const m = state.modules;
+    const password = provider() === "password";
+    const messaging = has("messaging");
+    const set = h("fieldset", {}, h("legend", {}, "Modules"),
+      checkbox({ id: "m-jobs", label: "Achtergrondwerk (jobs)", obj: m, key: "jobs", checked: has("jobs"), locked: messaging,
+        hint: `Een wachtrij voor elke schrijfactie naar buiten, met een scherm onder Beheer.${messaging ? " Staat aan: Berichten heeft het nodig." : ""}` }),
+      checkbox({ id: "m-messaging", label: "Berichten (messaging)", obj: m, key: "messaging", checked: messaging, locked: password, change: rerender,
+        hint: `Mail en meldingen via een outbox, met een logboek en het hulpformulier op het inlogscherm. Zet Achtergrondwerk mee aan.${password ? " Staat aan: de wachtwoordlogin verstuurt uitnodigingen en herstelkoppelingen per mail." : ""}` }));
+    if (messaging) {
+      set.append(h("div", { class: "sub-block" },
+        radios({ id: "m-transport", legend: "Hoe gaat de mail de deur uit?", obj: m, key: "transport", value: transport(), options: [
+          ["graph", "Microsoft Graph, uit een gedeelde postbus", state.project.m365 === "yes" ? "Vraagt een app-registratie met de toestemming Mail.Send." : "Kan niet: daarvoor is een Microsoft 365-tenant met een app-registratie nodig.", state.project.m365 !== "yes"],
+          ["smtp", "SMTP, via een mailserver of mailaanbieder", "Een aanbieder met SPF en DKIM op het afzenderdomein."]] }),
+        checkbox({ id: "m-teams", label: "Ook meldingen naar een Teams-kanaal", obj: m, key: "teams", hint: "Via een webhook van het kanaal. Alleen als de organisatie Teams gebruikt." })));
+    }
+    set.append(checkbox({ id: "m-files", label: "Bestanden (files)", obj: m, key: "files", change: rerender, hint: "Bestanden in Azure Blob Storage, met per doel een grens en de toegestane types. Downloaden gaat via de server, met het recht erbij." }));
+    if (m.files) {
+      set.append(h("div", { class: "sub-block" },
+        radios({ id: "m-azure", legend: "Is er al een Azure-abonnement waar de opslag in kan?", obj: state.accounts.azure, key: "exists", options: [["yes", "Ja"], ["no", "Nee, dat moet nog geregeld worden"]] }),
+        field({ id: "m-retention", label: "Hoe lang moeten de bestanden bewaard blijven?", obj: m, key: "retention", hint: "Een termijn of een regel. Leeg laten mag; dan komt het bij de open vragen.", example: EXAMPLE.retention })));
+    }
+    return [
+      h("p", { class: "lead" }, rich("Modules zijn delen van het template die je aanzet als het project ze nodig heeft. Wat je nu niet kiest, kan later nog met `pnpm template:add <module>`.")),
+      h("p", { class: "box" }, h("strong", {}, "Inloggen: "), password ? "eigen accounts met wachtwoord en tweestapsverificatie (module auth-password)." : "met het Microsoft-account van de organisatie (module auth-entra).", " Dat volgt uit je antwoord bij stap 1."),
+      set,
+      h("h3", {}, "Later"),
+      h("p", {}, "Deze modules zijn gereserveerd voor een volgende versie van het template en nog niet te kiezen."),
+      h("ul", { class: "reserved" }, RESERVED.map(([name, title, text]) => h("li", {}, title, " ", h("code", {}, name), h("span", { class: "badge" }, "later"), h("br"), text))),
+      dag2("Op dag 2 komt AI in je tool, met de module `ai` die je dan toevoegt met `pnpm template:add ai`: een knop die voorstelt in vaste onderdelen, met een instructie die je zelf schrijft en de prijs per verzoek in Beheer.", "ontwerpen"),
+    ];
+  }
+
+  /* Stap 5: accounts en budget. */
+  function accountsStep() {
+    return [
+      h("p", { class: "lead" }, "Per dienst: bestaat het account al, van wie is het, en wie beheert het. Daarna het budget. Bedragen van de diensten zelf staan hier bewust niet, want die veranderen; kijk bij de dienst wat het plan nu kost."),
+      radios({ id: "f-commercial", legend: "Wordt de tool commercieel gebruikt?", obj: state, key: "commercial", change: rerender,
+        hint: "Het Hobby-plan van Vercel is niet voor commercieel gebruik. Twijfel je, lees dan de voorwaarden van Vercel: een tool waar betaalde medewerkers mee werken valt daar al snel onder.",
+        options: [["yes", "Ja", "Vercel Pro is nodig zodra het live is. Tijdens het bouwen kan Hobby."], ["no", "Nee", "Hobby kan dan voorlopig volstaan. Een cron draait daar hoogstens één keer per dag."]] }),
+      field({ id: "f-budget", label: "Budget per maand, in hele euro's (optioneel)", obj: state.budget, key: "total", inputmode: "numeric", hint: "Wat het hele project per maand mag kosten. Verdeel het hieronder over de diensten.", example: "15", input: updateBudget }),
+      ...services().map(serviceBlock),
+      h("p", { class: "note", id: "budget-sum", "aria-live": "polite" }, budgetText()),
+    ];
+  }
+  function serviceBlock(key) {
+    const info = SERVICES[key];
+    const account = state.accounts[key];
+    const box = h("fieldset", { class: "box" }, h("legend", {}, info.name), h("p", { class: "hint" }, `Plan: ${planOf(key)}. Plafond: ${info.ceiling}.`));
+    if (key !== "m365") {
+      box.append(radios({ id: `a-${key}-exists`, legend: "Bestaat het account al?", obj: account, key: "exists", options: [["yes", "Ja"], ["no", "Nee, nog aanmaken"]] }));
+      box.append(radios({ id: `a-${key}-owner`, legend: "Van wie is het?", obj: account, key: "owner", change: rerender, options: [["organisation", "Van de organisatie"], ["personal", "Persoonlijk"]] }));
+      if (account.owner === "personal") box.append(note("Een persoonlijk account is niet overdraagbaar. Zet het onder een organisatie of team voordat er echte gebruikers zijn.", "warn"));
+    }
+    box.append(field({ id: `a-${key}-admin`, label: key === "m365" ? "Wie registreert de app en wijst de rollen toe?" : "Wie is de beheerder?", obj: account, key: "admin", autocomplete: "name" }));
+    box.append(field({ id: `b-${key}`, label: "Deel van het budget, in euro per maand", obj: state.budget.split, key, inputmode: "numeric", input: updateBudget }));
+    return box;
+  }
+  function updateBudget() {
+    const sum = document.getElementById("budget-sum");
+    if (sum) sum.textContent = budgetText();
+  }
+
+  /* Stap 6: huisstijl, met een voorvertoning en het contrast per kleurpaar. */
+  function brandStep() {
+    const b = state.brand;
+    if (!b.shortEdited) b.shortName = shortFrom(state.project.name);
+    const previews = h("div", { class: "previews", "aria-hidden": "true" });
+    const list = h("ul", { class: "contrast", id: "contrast" });
+    brandRefs = { previews, list };
+    const out = [
+      h("p", { class: "lead" }, "De huisstijl van jouw tool. De generator van het template maakt hier het hele thema van, in licht en donker, en stelt een kleur bij die het contrast niet haalt. Hier zie je een benadering, en per kleurpaar of het de norm haalt."),
+      h("p", {}, h("strong", {}, "Naam: "), t(state.project.name) || "nog niet ingevuld", ". Die pas je aan bij stap 1."),
+      field({ id: "f-short", label: "Korte naam", obj: b, key: "shortName", max: 20, hint: "Voor de rail en het tekstmerk, hoogstens 20 tekens. Volgt de naam tot je hem zelf aanpast.",
+        input: (value) => { b.shortEdited = value.trim() !== ""; updateBrand(); },
+        blur: (input) => { if (!input.value.trim()) { b.shortName = shortFrom(state.project.name); b.shortEdited = false; input.value = b.shortName; save(); updateBrand(); } } }),
+      h("fieldset", {}, h("legend", {}, "Kleuren"),
+        h("p", { class: "hint" }, "De hoofdkleur en de accentkleur zijn de kern. De andere zes hebben een neutrale standaard die je kunt laten staan. Kies met de kleurkiezer of typ een hexcode."),
+        COLOURS.map(([key, name, text]) => colourRow(key, name, text))),
+      radios({ id: "f-dark", legend: "Donkere modus", obj: b, key: "darkMode", change: updateBrand, options: [["auto", "Automatisch", "Elke gebruiker kiest licht of donker."], ["off", "Uit", "Alleen licht; de donkere modus wordt niet gemaakt."]] }),
+      radios({ id: "f-radius", legend: "Hoeken", obj: b, key: "radius", change: updateBrand, options: [["sharp", "Strak", "Een afronding van 2 tot 8 pixels."], ["soft", "Zacht", "Een afronding van 4 tot 12 pixels."]] }),
+      radios({ id: "f-logo-kind", legend: "Logo", obj: b, key: "logoKind", change: rerender, options: [["wordmark", "Woordmerk", "De korte naam als tekst."], ["image", "Eigen logo", "Een SVG-bestand tot 100 kB."]] }),
+      b.logoKind === "image" ? logoField() : null,
+      h("h3", {}, "Voorvertoning"),
+      h("p", { class: "sr-only" }, "De voorvertoning is alleen visueel. De contrastwaarden staan in de lijst hieronder."),
+      previews,
+      h("h3", {}, "Contrast"),
+      h("p", {}, "De norm (WCAG) is 4,5:1 voor tekst en 3:1 voor randen en de focusring. De waarden in het licht komen uit jouw kleuren, die in het donker uit de benadering."),
+      list,
+    ];
+    updateBrand();
+    return out;
+  }
+  function colourRow(key, name, text) {
+    const colours = state.brand.colours;
+    const id = `c-${key}`;
+    const picker = h("input", { type: "color", id: `${id}-pick` });
+    picker.value = toHex6(colours[key]) || DEFAULT_COLOURS[key];
+    picker.addEventListener("input", () => {
+      colours[key] = picker.value;
+      save();
+      const input = document.getElementById(id);
+      if (input) input.value = picker.value;
+      setError(id, "");
+      updateBrand();
+    });
+    return field({ id, label: `${name} (${key})`, obj: colours, key, code: true, hint: text,
+      wrap: (input) => h("div", { class: "colour-inputs" }, h("label", { for: picker.id, class: "sr-only" }, `${name}, kleurkiezer`), picker, input),
+      input: (value) => { const hex = toHex6(value); if (hex) picker.value = hex; updateBrand(); },
+      blur: (input) => {
+        const value = input.value.trim();
+        if (/^(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value)) { input.value = `#${value}`; colours[key] = input.value; picker.value = toHex6(input.value); save(); updateBrand(); }
+      } });
+  }
+  function logoField() {
+    const b = state.brand;
+    const input = h("input", { type: "file", id: "f-logo", accept: ".svg,image/svg+xml", "aria-describedby": "f-logo-hint f-logo-status f-logo-err" });
+    input.addEventListener("change", () => readLogo(input.files[0]));
+    return h("div", { class: "field" },
+      h("label", { for: "f-logo" }, "Logo als SVG-bestand"),
+      h("p", { class: "hint", id: "f-logo-hint" }, "Hoogstens 100 kB. Het komt in public/brand/logo.svg. In de rail staat het op een donkere achtergrond: kies een versie die daar leesbaar is."),
+      input,
+      h("p", { class: "hint", id: "f-logo-status" }, b.logoSvg ? `Gekozen: ${b.logoName || "logo.svg"}, ${Math.ceil(new Blob([b.logoSvg]).size / 1024)} kB.` : "Nog geen bestand gekozen."),
+      h("p", { class: "error", id: "f-logo-err" }, shown.get("f-logo") || ""));
+  }
+  function readLogo(file) {
+    if (!file) return;
+    if (file.size > 100 * 1024) { setError("f-logo", "Het bestand is groter dan 100 kB. Maak het kleiner, of kies het woordmerk."); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result);
+      const problem = svgProblem(text);
+      if (problem) { setError("f-logo", problem); return; }
+      Object.assign(state.brand, { logoSvg: text, logoName: file.name });
+      save();
+      setError("f-logo", "");
+      const status = document.getElementById("f-logo-status");
+      if (status) status.textContent = `Gekozen: ${file.name}, ${Math.ceil(file.size / 1024)} kB.`;
+      updateBrand();
+      announce("Het logo is ingelezen.");
+    };
+    reader.onerror = () => setError("f-logo", "Het bestand kon niet worden gelezen.");
+    reader.readAsText(file);
+  }
+  /* Een logo is een plaatje: geen script, geen ingebedde HTML, geen event handlers. */
+  function svgProblem(text) {
+    const doc = new DOMParser().parseFromString(text, "image/svg+xml");
+    if (doc.getElementsByTagName("parsererror").length || doc.documentElement.nodeName.toLowerCase() !== "svg") return "Dit is geen geldig SVG-bestand.";
+    if (doc.querySelector("script, foreignObject")) return "Het logo bevat een script of ingebedde HTML. Dat hoort niet in een logo; haal het eruit en kies het bestand opnieuw.";
+    for (const el of doc.getElementsByTagName("*")) {
+      for (const attr of el.attributes) if (/^on/i.test(attr.name)) return `Het logo bevat een event handler (${attr.name}). Haal die eruit en kies het bestand opnieuw.`;
+    }
+    return "";
+  }
+  /* De twee paletten volgen template/generators/palette.ts, zonder de reparatielus. */
+  function palettes() {
+    const c = {};
+    const invalid = new Set();
+    for (const [key] of COLOURS) {
+      c[key] = toHex6(state.brand.colours[key]);
+      if (!c[key]) { c[key] = DEFAULT_COLOURS[key]; invalid.add(key); }
+    }
+    const surfaceL = oklch(c.surface).l;
+    const light = {
+      bg: c.surface, ink: c.ink, card: surfaceL >= 0.985 ? tinted(c.surface, surfaceL - 0.03, 0.01) : "#ffffff",
+      border: tinted(c.surface, Math.max(0.4, surfaceL - 0.14), 0.02), primary: c.primary, onPrimary: "#ffffff",
+      accentText: c.accent, rail: tinted(c.primary, 0.27, 0.05), success: c.success, warning: c.warning, danger: c.danger, info: c.info,
+    };
+    const bg = tinted(c.primary, 0.13, 0.012);
+    const card = tinted(c.primary, 0.17, 0.014);
+    const status = (hex) => ensure(ensure(withL(hex, 0.74), bg, 4.5) || hex, card, 4.5) || withL(hex, 0.8);
+    const dark = {
+      bg, card, ink: tinted(c.ink, 0.95, 0.005), border: tinted(c.primary, 0.28, 0.016),
+      primary: withL(c.primary, 0.76), onPrimary: tinted(c.primary, 0.14, 0.03), accent: withL(c.accent, 0.8), onAccent: tinted(c.primary, 0.14, 0.03),
+      accentText: withL(c.accent, 0.76), rail: tinted(c.primary, 0.1, 0.012),
+      success: status(c.success), warning: status(c.warning), danger: status(c.danger), info: status(c.info),
+    };
+    return { c, light, dark, invalid };
+  }
+  function updateBrand() {
+    if (!brandRefs) return;
+    const pal = palettes();
+    if (logoUrl) URL.revokeObjectURL(logoUrl);
+    logoUrl = state.brand.logoKind === "image" && state.brand.logoSvg ? URL.createObjectURL(new Blob([state.brand.logoSvg], { type: "image/svg+xml" })) : "";
+    brandRefs.previews.replaceChildren(previewPanel("Licht", pal.light),
+      state.brand.darkMode === "auto" ? previewPanel("Donker, benadering", pal.dark) : h("p", { class: "hint" }, "Alleen licht: de donkere modus wordt niet gemaakt."));
+    brandRefs.list.replaceChildren(...PAIRS.map((pair) => contrastItem(pair, pal)));
+  }
+  function previewPanel(title, x) {
+    const [radius, cardRadius] = RADII[state.brand.radius] || RADII.sharp;
+    const statusLine = [["success", "Gelukt"], ["warning", "Let op"], ["danger", "Fout"], ["info", "Mededeling"]].map(([key, label]) => {
+      const span = h("span", {}, label);
+      span.style.color = x[key];
+      return span;
+    });
+    const panel = h("div", { class: "pv" },
+      h("div", { class: "pv-rail" }, logoUrl ? h("img", { src: logoUrl, alt: "" }) : h("span", {}, shortName() || "Korte naam")),
+      h("div", { class: "pv-body" },
+        h("p", { class: "pv-mode" }, title),
+        h("p", {}, "Tekst op het canvas, met een ", h("span", { class: "pv-accent" }, "accent"), "."),
+        h("div", { class: "pv-card" }, h("p", { class: "pv-title" }, "Een kaart"), h("p", {}, "Tekst op een kaart."), h("p", { class: "pv-status" }, statusLine), h("span", { class: "pv-btn" }, "Opslaan"))));
+    const vars = { "--pv-bg": x.bg, "--pv-ink": x.ink, "--pv-card": x.card, "--pv-border": x.border, "--pv-primary": x.primary, "--pv-on": x.onPrimary, "--pv-accent": x.accentText, "--pv-rail": x.rail, "--pv-r": `${radius}px`, "--pv-rc": `${cardRadius}px` };
+    for (const [name, value] of Object.entries(vars)) panel.style.setProperty(name, value);
+    return panel;
+  }
+  function contrastItem([label, fg, bg, minimum, fix, darkFg, darkBg], pal) {
+    if ([fg, bg, fix].some((key) => pal.invalid.has(key))) return h("li", { class: "fail" }, h("span", { class: "pair-name" }, label), h("span", {}, "Nog geen geldige kleur."));
+    const colour = (key) => (key === "white" ? "#ffffff" : key === "card" ? pal.light.card : pal.c[key]);
+    const ratio = contrast(colour(fg), colour(bg));
+    const ok = ratio >= minimum;
+    const norm = `${String(minimum).replace(".", ",")}:1`;
+    const row = h("li", { class: ok ? "pass" : "fail" }, h("span", { class: "pair-name" }, label),
+      h("span", {}, `Licht: ${ratioText(ratio)}, ${ok ? "haalt" : "haalt niet"} de norm van ${norm}.`));
+    if (state.brand.darkMode === "auto") row.append(h("span", {}, `Donker, benadering: ${ratioText(contrast(pal.dark[darkFg], pal.dark[darkBg]))}.`));
+    if (ok) return row;
+    const other = fix === fg ? colour(bg) : colour(fg);
+    const better = ensure(pal.c[fix], other, minimum);
+    const phrase = COLOURS.find(([key]) => key === fix)[3];
+    if (!better) { row.append(h("span", { class: "fix" }, "Geen voorstel mogelijk: pas de andere kleur van dit paar aan.")); return row; }
+    const direction = luminance(better) < luminance(pal.c[fix]) ? "donkerder" : "lichter";
+    row.append(h("span", { class: "fix" }, `Voorstel: maak ${phrase} ${direction}. ${better} haalt ${ratioText(contrast(better, other))}.`),
+      h("button", { type: "button", class: "small", onclick: () => applyColour(fix, better) }, `Gebruik ${better} voor ${phrase}`));
+    return row;
+  }
+  function applyColour(key, hex) {
+    state.brand.colours[key] = hex;
+    save();
+    const input = document.getElementById(`c-${key}`);
+    const picker = document.getElementById(`c-${key}-pick`);
+    if (input) input.value = hex;
+    if (picker) picker.value = hex;
+    setError(`c-${key}`, "");
+    updateBrand();
+    if (input) input.focus();
+    announce(`${capital(COLOURS.find(([k]) => k === key)[3])} is nu ${hex}.`);
+  }
+
+  /* Stap 7: fasen. */
+  function phasesStep() {
+    return [
+      h("p", { class: "lead" }, "Eén tot vier fasen. Per fase: wat erin zit, wanneer hij klaar is (meetbaar), en het handwerk buiten de code dat ervoor nodig is."),
+      exampleBox(EXAMPLE.phases),
+      ...state.phases.map(phaseBlock),
+      state.phases.length < 4 ? h("button", { type: "button", id: "phase-add", onclick: addPhase }, "Fase toevoegen") : h("p", { class: "hint", id: "phase-add", tabindex: "-1" }, "Vier fasen is het maximum. Wat daarna komt, hoort in een later plan."),
+    ];
+  }
+  function phaseBlock(phase, i) {
+    return h("fieldset", { class: "box" }, h("legend", {}, `Fase ${i + 1}`),
+      field({ id: `p-${i}-name`, label: "Naam", obj: phase, key: "name" }),
+      field({ id: `p-${i}-contents`, label: "Wat zit erin?", obj: phase, key: "contents", rows: 3 }),
+      field({ id: `p-${i}-exit`, label: "Klaar als (exitcriterium)", obj: phase, key: "exit", rows: 2, hint: "Eén meetbare zin. Dit wordt de kernflow van de e2e." }),
+      field({ id: `p-${i}-manual`, label: "Handwerk buiten de code", obj: phase, key: "manual", rows: 2, hint: "Wat een mens moet regelen: accounts, een postbus, een container." }),
+      state.phases.length > 1 ? h("button", { type: "button", class: "danger", onclick: () => removePhase(i) }, `Fase ${i + 1} verwijderen`) : null);
+  }
+  function addPhase() {
+    if (state.phases.length >= 4) return;
+    state.phases.push(blankPhase());
+    shown.clear();
+    save();
+    renderStep();
+    document.getElementById(`p-${state.phases.length - 1}-name`).focus();
+    announce(`Fase ${state.phases.length} is toegevoegd.`);
+  }
+  function removePhase(i) {
+    state.phases.splice(i, 1);
+    shown.clear();
+    save();
+    renderStep();
+    document.getElementById("phase-add").focus();
+    announce(`Fase ${i + 1} is verwijderd.`);
+  }
+
+  /* Stap 8: controle en de startprompt. Eén ding om mee te nemen; de losse bestanden zijn reserve. */
+  function review() {
+    const errors = allErrors();
+    const out = [];
+    if (errors.length) {
+      out.push(h("div", { class: "summary", id: "review-errors" },
+        h("h3", {}, errors.length === 1 ? "Eén punt staat nog open" : `${errors.length} punten staan nog open`),
+        h("p", {}, "Los ze eerst op; daarna krijg je je startprompt. Een klik brengt je naar het veld."),
+        h("ul", {}, errors.map((e) => h("li", {}, h("a", { href: `#${e.id}`, onclick: (event) => { event.preventDefault(); go(e.step, e.id); } }, `Stap ${e.step}, ${STEPS[e.step][0]}: ${e.message}`))))));
+      out.push(h("h3", {}, "Samenvatting"), facts());
+      return out;
+    }
+    out.push(note("Alles is ingevuld zoals het schema het vraagt. Je startprompt is klaar.", "good"), promptBlock(), h("h3", {}, "Wat nu"), whatNow());
+    if (JSON.stringify(state).includes(EM)) out.push(note("In je tekst staan em-dashes. In de bestanden worden dat komma's, want de huisregels van het template weigeren ze.", "warn"));
+    out.push(h("h3", {}, "Samenvatting"), facts(), reserveBlock());
+    return out;
+  }
+  function facts() {
+    const p = state.project;
+    const b = state.brand;
+    const accounts = services().map((key) => {
+      const a = state.accounts[key];
+      const status = key === "m365" ? "tenant aanwezig" : a.exists === "yes" ? "bestaat" : a.exists === "no" ? "nog aanmaken" : "nog onbekend";
+      return `${SERVICES[key].name}: ${status}${t(a.admin) ? `, beheerder ${t(a.admin)}` : ""}`;
+    });
+    const swatches = h("ul", { class: "swatches" }, COLOURS.map(([key]) => {
+      const sw = h("span", { class: "sw", "aria-hidden": "true" });
+      sw.style.background = toHex6(b.colours[key]) || "transparent";
+      return h("li", {}, sw, `${key} ${String(b.colours[key]).trim()}`);
+    }));
+    const rows = [
+      ["Project", `${t(p.name)} (${p.slug.trim()})`],
+      ["Omschrijving", t(p.description)],
+      ["Organisatie", t(p.organisation) + (domainOf(p.mailDomain) ? `, maildomein ${domainOf(p.mailDomain)}` : "")],
+      ["Eigenaar", t(p.owner) || "nog niet ingevuld"],
+      ["Taal en tijdzone", `${p.uiLanguage === "en" ? "Engels" : "Nederlands"}, ${t(p.timezone)}`],
+      ["Inloggen", loginText()],
+      ["Rollen", state.roles.map((r) => `${t(r.nl)} (${r.value.trim()}${r.admin ? ", beheerder" : ""})`).join("; ")],
+      ["Gebruikers", `${int(state.people.count) ? `ongeveer ${int(state.people.count)}` : "aantal nog niet geschat"}, ${state.people.audience === "external" ? "ook van buiten de organisatie" : "alleen van de organisatie"}`],
+      ["Modules", activeModules().map((name) => `${MODULES[name]} (${name})`).join(", ")],
+      ["Accounts", accounts.join("; ")],
+      ["Budget", budgetText()],
+      ["Huisstijl", `korte naam ${shortName()}, donkere modus ${b.darkMode === "auto" ? "automatisch" : "uit"}, ${b.radius === "soft" ? "zachte" : "strakke"} hoeken, ${b.logoKind === "image" ? "eigen logo" : "woordmerk"}`],
+      ["Kleuren", swatches],
+      ["Fasen", state.phases.map((ph, i) => `${i + 1}. ${t(ph.name) || "zonder naam"}`).join("; ")],
+    ];
+    return h("dl", { class: "facts" }, rows.flatMap(([term, value]) => [h("dt", {}, term), h("dd", {}, value)]));
+  }
+  const checklistName = () => `00-checklist-${state.project.slug.trim()}.md`;
+  function reserveBlock() {
+    const items = [
+      ["project.config.json", "Claude zet hem in de hoofdmap", () => `${clean(JSON.stringify(buildConfig(), null, 2))}\n`, "application/json"],
+      ["PROJECTPLAN.md", "Claude zet hem in `docs/`", () => clean(buildPlan()), "text/markdown"],
+      [checklistName(), "Claude zet hem in `docs/handleiding/`", () => clean(buildChecklist()), "text/markdown"],
+      ["startprompt.md", "dezelfde tekst als de knop kopieert", () => clean(buildPrompt()), "text/markdown"],
+    ];
+    if (state.brand.logoKind === "image") items.push(["logo.svg", "dit bestand zet je zelf in `public/brand/logo.svg`", () => state.brand.logoSvg, "image/svg+xml"]);
+    return h("details", { class: "reserve", id: "reserve" },
+      h("summary", {}, "Reserve: losse bestanden"),
+      h("p", { class: "hint" }, "Alleen nodig als het plakken niet lukt, of als je de bestanden liever zelf neerzet. Zet ze dan op de plek hieronder en commit ze voordat je Claude laat beginnen."),
+      h("ul", { class: "downloads" }, items.map(([name, where, make, type]) =>
+        h("li", {}, h("button", { type: "button", onclick: () => download(name, make(), type) }, `Download ${name}`), h("span", { class: "hint" }, rich(where))))));
+  }
+  function promptBlock() {
+    const text = clean(buildPrompt());
+    const area = h("textarea", { id: "prompt", rows: 14, readonly: true, "aria-describedby": "prompt-hint" });
+    area.value = text;
+    const view = h("details", { class: "prompt-view", id: "prompt-view" }, h("summary", {}, "Bekijk de startprompt"), h("label", { for: "prompt", class: "sr-only" }, "De startprompt voor Claude Code"), area);
+    const status = h("p", { class: "copy-status", id: "copy-status", "aria-live": "polite" });
+    const button = h("button", { type: "button", class: "primary big", id: "copy-prompt" }, "Kopieer de startprompt");
+    button.addEventListener("click", () => copyPrompt(area, view, button, status));
+    return h("div", { class: "prompt-card" },
+      h("h3", {}, "Je startprompt"),
+      h("p", { id: "prompt-hint" }, "Eén tekst om in het Claude-paneel te plakken, in deel C, stap 3. De configuratie, het projectplan en je checklist zitten erin; Claude zet ze zelf op hun plek en stopt dan, zodat jij ze kunt committen."),
+      button, status, view);
+  }
+  async function copyPrompt(area, view, button, status) {
+    let ok = false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(area.value); ok = true; }
+    } catch { ok = false; }
+    if (!ok) {
+      view.open = true;
+      area.focus();
+      area.select();
+      try { ok = document.execCommand("copy"); } catch { ok = false; }
+    }
+    status.classList.toggle("bad", !ok);
+    if (ok) {
+      button.textContent = "Gekopieerd";
+      status.textContent = "Gekopieerd. Plak de startprompt in het Claude-paneel, in deel C, stap 3.";
+      window.setTimeout(() => { button.textContent = "Kopieer de startprompt"; }, 4000);
+    } else {
+      view.open = true;
+      area.focus();
+      area.select();
+      status.textContent = "Kopiëren mocht niet in deze browser. De tekst staat hieronder geselecteerd: kopieer hem met Ctrl+C, of Cmd+C op een Mac.";
+    }
+  }
+  function whatNow() {
+    const items = [];
+    if (state.brand.logoKind === "image") items.push(h("li", {}, rich("Download `logo.svg` onder Reserve en zet het in `public/brand/`. Dat bestand zet Claude niet zelf neer.")));
+    items.push(
+      h("li", {}, "Ga naar deel C. Op de dag maak je eerst je repo (stap 1) en haal je hem naar je laptop (stap 2)."),
+      h("li", {}, "In stap 3 plak je de startprompt in het Claude-paneel. Claude zet de drie bestanden neer en stopt."),
+      h("li", {}, rich("Commit en sync de bestanden en zeg \"gedaan\": `pnpm template:apply` weigert op een werkmap met wijzigingen die nog niet gecommit zijn. Daarna schrijft Claude de eerste specificatie.")),
+      h("li", {}, "Na de eerste dag: ", h("a", { href: "workshop-2.html" }, "dag 2"), ", met dev en prod gescheiden en AI in je tool."));
+    return h("ol", {}, items);
+  }
+  function download(name, text, type) {
+    const url = URL.createObjectURL(new Blob([text], { type: `${type};charset=utf-8` }));
+    const link = h("a", { href: url, download: name, hidden: true });
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+    announce(`${name} wordt gedownload.`);
+  }
+
+  /* De uitvoer: project.config.json, volgens template/schema/project.config.schema.json. */
+  function buildConfig() {
+    const p = state.project;
+    const b = state.brand;
+    const domain = domainOf(p.mailDomain);
+    const slug = p.slug.trim();
+    const roles = state.roles.map((role) => ({ value: role.value.trim(), label: { nl: t(role.nl), en: t(role.en) }, admin: Boolean(role.admin) }));
+    const auth = { provider: provider(), roles };
+    if (provider() === "password") auth.password = { mfaRequiredFor: p.mfa };
+    auth.devUsers = roles.map((role) => ({ email: `${role.value}@dev.invalid`, displayName: `${role.label.nl} (dev)`, roles: [role.value] }));
+    return {
+      $schema: "./template/schema/project.config.schema.json",
+      configVersion: 1,
+      project: {
+        name: t(p.name), shortName: shortName(), slug, description: t(p.description),
+        organisation: { name: t(p.organisation), mailDomain: domain || null },
+        uiLanguage: p.uiLanguage, timezone: t(p.timezone), currency: "EUR",
+        systemEmail: domain ? `system@${domain}` : `system@${slug}.invalid`,
+        productionUrl: null, homePath: "/home",
+      },
+      brand: {
+        colours: Object.fromEntries(COLOURS.map(([key]) => [key, toHex6(b.colours[key])])),
+        darkMode: b.darkMode, radius: b.radius,
+        logo: b.logoKind === "image" ? { kind: "image", path: "public/brand/logo.svg", darkPath: null } : { kind: "wordmark" },
+      },
+      auth,
+      modules: activeModules(),
+      messaging: { transport: transport(), teams: has("messaging") && Boolean(state.modules.teams) },
+      hosting: { region: "fra1", github: null, vercelTeam: null, neonProject: null },
+      template: { source: null, skipDependencies: [], keepCrons: [] },
+      intake: buildIntake(),
+    };
+  }
+  /* Alles wat de tooling niet leest, zodat er niets verloren gaat. */
+  function buildIntake() {
+    const p = state.project;
+    return {
+      createdWith: "wizard/index.html",
+      createdOn: isoToday(),
+      owner: t(p.owner) || null,
+      microsoft365: p.m365 === "yes",
+      expectedUsers: int(state.people.count),
+      audience: state.people.audience,
+      roles: state.roles.map((role) => ({ value: role.value.trim(), who: t(role.who), may: t(role.may), mayNot: t(role.mayNot) })),
+      content: Object.fromEntries(Object.keys(state.content).map((key) => [key, t(state.content[key])])),
+      files: has("files") ? { azureSubscription: yesNo(state.accounts.azure.exists), retention: t(state.modules.retention) || null } : null,
+      accounts: services().map((key) => ({
+        service: key,
+        exists: key === "m365" ? true : yesNo(state.accounts[key].exists),
+        ownership: key === "m365" ? "organisation" : state.accounts[key].owner || null,
+        admin: t(state.accounts[key].admin) || null,
+      })),
+      commercialUse: yesNo(state.commercial),
+      budget: { monthlyEuros: int(state.budget.total), split: Object.fromEntries(services().map((key) => [key, int(state.budget.split[key])])) },
+      phases: state.phases.map((ph) => ({ title: t(ph.name), contents: t(ph.contents), exit: t(ph.exit), manual: t(ph.manual) })),
+    };
+  }
+
+  /* De uitvoer: docs/PROJECTPLAN.md, met de twaalf kopjes uit de seed. */
+  function buildPlan() {
+    const p = state.project;
+    const c = state.content;
+    const hint = (n) => `_${HINTS[n - 1]}_`;
+    const or = (text, n) => (t(text) ? t(text) : hint(n));
+    const lines = [`# Projectplan: ${t(p.name)}`, "",
+      `Opgesteld op ${longToday()} voor ${t(p.organisation)}. Dit is het document waar alles uit`,
+      "volgt: Claude Code leidt er de specificatie, het datamodel, de rechten en de schermen uit af. Schrijf",
+      "in gewone taal, in zelfstandige naamwoorden en werkwoorden, en zeg wat er moet gebeuren en niet hoe",
+      "het gebouwd wordt. Handleiding 10 (`docs/handleiding/10-projectplan-schrijven.md`) legt per kopje",
+      "uit wat een goed antwoord is, met voorbeelden. Vervang de cursieve aanwijzingen door je eigen tekst."];
+    const section = (n, ...body) => lines.push("", `## ${HEADINGS[n - 1]}`, "", ...body);
+    const exits = state.phases.map((ph, i) => (t(ph.exit) ? `- **Fase ${i + 1}${t(ph.name) ? `, ${inline(ph.name)}` : ""}:** ${inline(ph.exit)}` : "")).filter(Boolean);
+    const complete = state.roles.every((r) => t(r.who) && (t(r.may) || r.admin));
+    const count = int(state.people.count);
+    const external = state.people.audience === "external";
+
+    section(1, `**Wat het is:** ${t(p.description)}`, "", or(c.why, 1));
+    const success = [t(c.success), exits.join("\n")].filter(Boolean);
+    section(2, ...(success.length ? success.flatMap((part, i) => (i ? ["", part] : [part])) : [hint(2)]));
+    section(3, ...(complete ? [] : [hint(3), ""]), "| Rol | Wie | Mag | Mag niet |", "|---|---|---|---|",
+      ...state.roles.map((r) => `| ${cell(r.nl)} (\`${r.value.trim()}\`) | ${cell(r.who)} | ${cell(r.may) || (r.admin ? "alles, ook Beheer" : "")} | ${cell(r.mayNot)} |`),
+      "", `${count ? `Verwacht aantal gebruikers: ongeveer ${count}.` : "Het aantal gebruikers is nog niet geschat."} ${external ? `Ook mensen van buiten de organisatie, met een eigen account${provider() === "entra" ? " als gast in de tenant" : ""}.` : "Alleen mensen van de organisatie."}`);
+    section(4, or(c.concepts, 4));
+    section(5, or(c.processes, 5));
+    section(6, or(c.rules, 6));
+    const links = [`- **Inloggen:** ${loginText()}.`];
+    if (has("messaging")) links.push(`- **Mail en meldingen** (module messaging): ${transport() === "graph" ? "via Microsoft Graph, uit een gedeelde postbus" : "via SMTP bij een mailaanbieder"}${state.modules.teams ? ", en meldingen naar een Teams-kanaal via een webhook" : ""}.`);
+    if (has("jobs")) links.push("- **Achtergrondwerk** (module jobs): elke schrijfactie naar buiten gaat via een wachtrij, met een sleutel die dubbel werk voorkomt.");
+    if (has("files")) links.push(`- **Bestanden** (module files): opslag in Azure Blob Storage${t(state.modules.retention) ? `; bewaartermijn: ${bare(state.modules.retention)}` : ""}.`);
+    section(7, links.join("\n"), "", "_Vul aan met wat er verder van buiten komt of naar buiten gaat: per koppeling de richting, hoe vaak, en wat als het stuk is._");
+    section(8, or(c.notBuilding, 8));
+    section(9, ...state.phases.flatMap((ph, i) => [`### Fase ${i + 1}${t(ph.name) ? `: ${inline(ph.name)}` : ""}`, "",
+      `- **Wat erin zit:** ${inline(ph.contents) || "_nog in te vullen_"}`,
+      `- **Klaar als:** ${inline(ph.exit) || "_nog in te vullen_"}`,
+      `- **Handwerk buiten de code:** ${inline(ph.manual) || "_nog in te vullen_"}`, ""]));
+    section(10, ...conditions());
+    const questions = openQuestions();
+    section(11, ...(questions.length ? [questions.map((q, i) => `- **V${i + 1}:** ${q}`).join("\n"), "", "_Vul aan met wat je verder nog niet weet, en zet bij elke vraag wie het antwoord heeft._"] : [hint(11)]));
+    section(12, "| Datum | Wijziging | Waarom |", "|---|---|---|", `| ${longToday()} | Eerste versie, uit de wizard. | |`);
+    return `${lines.join("\n").replace(/\n{3,}/g, "\n\n").trimEnd()}\n`;
+  }
+  /* Kopje 10: accounts, budget, bewaartermijn, privacy, taal en huisstijl. */
+  function conditions() {
+    const p = state.project;
+    const b = state.brand;
+    const total = int(state.budget.total);
+    const commercial = { yes: "ja; Vercel Pro zodra het live is, Hobby tijdens het bouwen.", no: "nee; Hobby kan voorlopig volstaan, met een cron die hoogstens één keer per dag draait." }[state.commercial]
+      || "_nog te bepalen: dat beslist of Vercel Hobby volstaat of Pro nodig is._";
+    const retention = has("files") && t(state.modules.retention) ? `bestanden: ${bare(state.modules.retention)}. ` : "";
+    const sensitive = t(state.content.sensitive) ? `gevoelig: ${inline(state.content.sensitive)}` : "_Welke gegevens zijn gevoelig, wie mag ze zien, en hoe lang bewaren we ze?_";
+    return [
+      `- **Eigenaar:** ${inline(p.owner) || "_nog in te vullen_"}`,
+      `- **Taal van de interface:** ${p.uiLanguage === "en" ? "Engels" : "Nederlands"}; de documentatie is altijd Nederlands. Tijdzone: ${t(p.timezone)}.`,
+      `- **Commercieel gebruik:** ${commercial}`,
+      `- **Budget:** ${total !== null ? `${total} euro per maand, verdeeld zoals in de tabel hieronder.` : "_nog in te vullen: wat mag het per maand kosten, en bij welke dienst staat het plafond?_"}`,
+      `- **Bewaartermijnen en privacy:** ${retention}${sensitive}`,
+      `- **Huisstijl:** korte naam "${shortName()}", hoofdkleur \`${toHex6(b.colours.primary)}\`, accentkleur \`${toHex6(b.colours.accent)}\`, donkere modus ${b.darkMode === "auto" ? "automatisch" : "uit"}, ${b.radius === "soft" ? "zachte" : "strakke"} hoeken, ${b.logoKind === "image" ? "eigen logo in `public/brand/logo.svg`" : "woordmerk"}. Alle kleuren staan in \`project.config.json\`.`,
+      "", "**Accounts**", "", "| Dienst | Bestaat al | Van | Beheerder |", "|---|---|---|---|", ...accountRows(),
+      "", "**Budget per dienst**", "", "| Dienst | Plan | Waar het plafond staat | Deel van het budget |", "|---|---|---|---|", ...budgetRows(),
+    ];
+  }
+  function accountRows() {
+    return services().map((key) => {
+      const a = state.accounts[key];
+      const exists = key === "m365" || a.exists === "yes" ? "ja" : a.exists === "no" ? "nee" : "";
+      const owner = key === "m365" || a.owner === "organisation" ? "de organisatie" : a.owner === "personal" ? "persoonlijk" : "";
+      return `| ${SERVICES[key].name} | ${exists} | ${owner} | ${cell(a.admin)} |`;
+    });
+  }
+  function budgetRows() {
+    const total = int(state.budget.total);
+    const rows = services().map((key) => {
+      const share = int(state.budget.split[key]);
+      return `| ${SERVICES[key].name} | ${planOf(key)} | ${SERVICES[key].ceiling} | ${share === null ? "" : `${share} euro`} |`;
+    });
+    rows.push(`| **Totaal** | | | ${total === null ? `${usedBudget()} euro` : `${usedBudget()} van ${total} euro`} |`);
+    return rows;
+  }
+  /* Kopje 11: de vragen die in de wizard open bleven. */
+  function openQuestions() {
+    const questions = [];
+    if (!t(state.project.owner)) questions.push("Wie is de eigenaar van het project, de persoon die bij twijfel beslist?");
+    if (int(state.people.count) === null) questions.push("Hoeveel mensen gaan het ongeveer gebruiken?");
+    if (!state.commercial) questions.push("Is het gebruik commercieel? Dat beslist of Vercel Hobby voorlopig volstaat of Pro nodig is zodra het live is.");
+    if (int(state.budget.total) === null) questions.push("Wat mag het per maand kosten, en bij welke dienst staat het plafond?");
+    for (const key of services()) if (!t(state.accounts[key].admin)) questions.push(`Wie is de beheerder van ${SERVICES[key].name}?`);
+    if (has("files") && !t(state.modules.retention)) questions.push("Hoe lang bewaren we de bestanden, en vallen ze onder een bewaarplicht?");
+    return questions;
+  }
+
+  /* De uitvoer: docs/handleiding/00-checklist-<slug>.md, het stramien met alleen wat geldt. */
+  function buildChecklist() {
+    const p = state.project;
+    const entra = provider() === "entra";
+    const total = int(state.budget.total);
+    const slug = p.slug.trim();
+    const github = state.accounts.github;
+    const box = (done, text) => `- [${done ? "x" : " "}] ${text}`;
+    const lines = [`# Checklist voor ${t(p.name)}: accounts, toegang en kosten`, "",
+      `De persoonlijke versie van \`docs/handleiding/00-checklist.md\` voor ${t(p.name)} (\`${slug}\`), gemaakt met de wizard op ${longToday()}. Alleen de onderdelen die voor dit project gelden staan erin. Vink af wat gedaan is en houd de tabellen onderaan bij. Geen geheimen in dit bestand: het staat in git.`,
+      "", "## Voordat je begint", "",
+      t(p.owner) ? box(true, `De eigenaar is ${bare(p.owner)}; één persoon beslist.`) : box(false, "Je weet wie de eigenaar van het project is (één persoon beslist)."),
+      entra ? box(true, "Er is een Microsoft 365-tenant waar een beheerder een app mag registreren: de inlog gaat via Microsoft (handleiding 05).")
+        : box(true, "Er is geen Microsoft 365-tenant waar een beheerder een app mag registreren: eigen accounts met wachtwoord (handleiding 05b)."),
+      total !== null ? box(true, `Het budget is ${total} euro per maand, verdeeld in de tabel Budget onderaan (handleiding 30).`) : box(false, "Je hebt een budget per maand afgesproken en weet bij welke dienst het plafond staat (handleiding 30)."),
+      "", "## Accounts en beheerders", "", "| Dienst | Bestaat al | Van | Beheerder |", "|---|---|---|---|", ...accountRows()];
+    if (services().some((key) => key !== "m365" && state.accounts[key].owner === "personal")) lines.push("", "Een persoonlijk account is niet overdraagbaar. Zet het onder een organisatie of team voordat er echte gebruikers zijn.");
+    lines.push("", "## GitHub (handleiding 02)", "",
+      box(github.exists === "yes" && github.owner === "organisation", "Een organisatie, geen persoonlijk account: een persoonlijk account is niet overdraagbaar."),
+      box(false, "Tweestapsverificatie verplicht voor alle leden van de organisatie."),
+      box(false, `De repo \`${slug}\` aangemaakt uit het template, **privé**.`),
+      box(false, "Dependabot alerts en secret scanning aan (Settings, Code security)."),
+      box(false, "Actions: workflow permissions op alleen-lezen; de uitgavenlimiet voor Actions op nul."),
+      box(false, "Het gratis plan heeft geen branch protection op een privé-repo: de CI is advies. Werk daarom altijd via een pull request (werkwijze, sectie 10). Wil je het slot, dan is dat GitHub Team."),
+      "", "## Vercel (handleiding 03)", "",
+      box(false, `Een team, geen persoonlijk account; het project \`${slug}\` geïmporteerd uit de repo.`),
+      box(false, "Functieregio Frankfurt (eu-central-1), bij de database."),
+      box(false, vercelLine()),
+      box(false, "Deployment Protection aan voor previews."),
+      box(false, "De variabelen gezet (handleiding 06), met Sensitive aan bij elk geheim."),
+      "", "## Neon (handleiding 04)", "",
+      box(false, "Een project in Frankfurt, gratis plan tot het niet meer past."),
+      box(false, "Een dev-branch naast de productiebranch; preview-branches per pull request aan."),
+      box(false, "`PRODUCTION_DB_ENDPOINT` in Vercel, zodat een preview nooit op productie migreert."),
+      box(false, "Scale to zero en autosuspend op de kortste tijd; history retention op wat je nodig hebt."),
+      box(false, "Je weet waar het herstelpunt (PITR) staat en hoe lang het terugkijkt."), "");
+    if (entra) {
+      lines.push("## Inloggen met Microsoft (handleiding 05 en 11)", "",
+        box(false, "De app-registratie met de redirect-URI's van lokaal en productie."),
+        box(false, `De app roles met exact de waarden uit \`project.config.json\`: ${state.roles.map((r) => `\`${r.value.trim()}\``).join(", ")}.`),
+        box(false, "\"Assignment required\" op Yes, en de rollen toegewezen aan de eerste mensen."),
+        box(false, "De vervaldatum van het client secret in de tabel hieronder, met een herinnering een maand ervoor."));
+      if (state.people.audience === "external") lines.push(box(false, "Mensen van buiten de organisatie uitgenodigd als gast in de tenant en toegewezen aan hun rol."));
+    } else {
+      lines.push("## Inloggen met wachtwoord (handleiding 05b)", "",
+        box(false, "De eerste beheerder uitgenodigd met `pnpm invite` en tweestapsverificatie ingesteld."),
+        box(false, "Afgesproken wie een account mag uitnodigen en wie bij een vermoeden van misbruik ingrijpt."), "",
+        `Tweestapsverificatie is verplicht voor ${MFA_TEXT[p.mfa]} (\`auth.password.mfaRequiredFor\` is \`${p.mfa}\`).${p.mfa === "nobody" ? " Overweeg het voor beheerders verplicht te maken." : ""}`);
+    }
+    if (has("messaging")) {
+      lines.push("", "## Mail en meldingen (module messaging)", "",
+        transport() === "graph" ? box(false, "Transport Graph: een gedeelde postbus met `Mail.Send` en een ApplicationAccessPolicy (handleiding 20).")
+          : box(false, `Transport SMTP: een aanbieder met SPF en DKIM op het afzenderdomein${domainOf(p.mailDomain) ? ` \`${domainOf(p.mailDomain)}\`` : ""} (handleiding 20b).`),
+        box(false, "Eén proefmail verstuurd met `pnpm mail:test`."));
+      if (state.modules.teams) lines.push(box(false, "De webhook van het Teams-kanaal, getest met `pnpm teams:test` (handleiding 21)."));
+    }
+    if (has("files")) {
+      lines.push("", "## Bestanden (module files, handleiding 22)", "");
+      if (state.accounts.azure.exists !== "yes") lines.push(box(false, "Een Azure-abonnement geregeld waar de opslag in kan."));
+      lines.push(box(false, "Een storage account in een EU-regio, een privécontainer, een SAS-token met Read, Create en Write en een vervaldatum van hoogstens een jaar."),
+        box(false, "De vervaldatum in `BLOB_SAS_EXPIRES` én in de tabel hieronder."),
+        box(false, `Een bewaarbeleid op de container als de bestanden onder een bewaarplicht vallen.${t(state.modules.retention) ? ` Bewaartermijn volgens het plan: ${bare(state.modules.retention)}.` : ""}`));
+    }
+    lines.push("", "## Lokaal werken (handleiding 07)", "",
+      box(false, "`vercel env pull .env.local`, `AUTH_DEV_LOGIN=1` erbij, `pnpm install`, `pnpm db:status`."),
+      box(false, "`.env.local` staat niet in `git status`."),
+      "", "## Eerste deploy en rooktest (handleiding 08)", "",
+      box(false, "De eerste deploy naar productie slaagt en `pnpm smoke:prod` is groen."),
+      box(false, "Je kunt inloggen en ziet de versie linksonder in de rail."),
+      "", "## Terugkerende controles", "",
+      box(false, "**Wekelijks**: Beheer, Systeem is groen."),
+      box(false, "**Maandelijks**: de kosten per dienst tegen het plafond; de tabel Vervaldata nagelopen."),
+      box(false, "**Jaarlijks**: `public/.well-known/security.txt` en de lijst met accounts nagelopen."),
+      "", "## Vervaldata", "", "| Wat | Waar | Verloopt op | Herinnering gezet |", "|---|---|---|---|");
+    if (entra) lines.push("| Client secret van de app-registratie | Entra | | |");
+    if (has("files")) lines.push("| SAS-token van de bestandsopslag | Azure | | |");
+    if (has("messaging") && transport() === "smtp") lines.push("| Wachtwoord of app-wachtwoord van de mailaanbieder | | | |");
+    lines.push("", "## Budget", "", "| Dienst | Plan | Waar het plafond staat | Deel van het budget |", "|---|---|---|---|", ...budgetRows());
+    return `${lines.join("\n").replace(/\n{3,}/g, "\n\n")}\n`;
+  }
+  function vercelLine() {
+    if (state.commercial === "yes") return "Pro met Spend Management zodra het live is: het gebruik is commercieel, en dat staat het Hobby-plan niet toe. Tijdens het bouwen kan Hobby.";
+    if (state.commercial === "no") return "Hobby kan voorlopig volstaan, want het gebruik is niet commercieel. Een cron draait daar hoogstens één keer per dag; Pro met Spend Management zodra dat niet meer past.";
+    return "Hobby tijdens het bouwen; Pro met Spend Management zodra er echte gebruikers zijn (het Hobby-plan staat commercieel gebruik niet toe en een cron draait er maar één keer per dag).";
+  }
+
+  /* Een codeblok met een afbakening die langer is dan elke reeks backticks in de inhoud zelf. */
+  function fenced(text, info) {
+    const body = String(text).replace(/\s+$/, "");
+    const longest = (body.match(/`+/g) || []).reduce((max, run) => Math.max(max, run.length), 0);
+    const fence = "`".repeat(Math.max(3, longest + 1));
+    return [`${fence}${info}`, body, fence];
+  }
+  /* De uitvoer: de startprompt voor Claude Code, met de drie bestanden erin zodat Claude ze zelf plaatst. */
+  function buildPrompt() {
+    const p = state.project;
+    const slug = p.slug.trim();
+    const checklist = `docs/handleiding/${checklistName()}`;
+    const logo = state.brand.logoKind === "image";
+    const steps = [
+      "1. Schrijf de drie bestanden. Neem de inhoud letterlijk over, zonder de regels met de backticks eromheen, en eindig met precies één regeleinde. Een bestand dat al precies zo is, laat je staan. Is het bestaande bestand nog de neutrale versie van het template, dan schrijf je eroverheen: voor `project.config.json` is dat `template/default.project.config.json` (alleen de regel `$schema` verschilt), voor `docs/PROJECTPLAN.md` de versie waarvan de SHA-256 van de tekst, met LF als regeleinde, gelijk is aan de `shippedHash` in `template.lock.json`. De checklist is nieuw. Wijkt een bestaand bestand af, toon me dan wat er nu staat en wacht op mijn ja.",
+      `2. ${logo ? "Controleer dat `public/brand/logo.svg` er staat; dat zet ik er zelf neer. Ontbreekt het, vraag er dan om. " : ""}Noem de bestanden die je schreef en stop: ik commit ze zelf en klik Sync Changes, want \`pnpm template:apply\` weigert op een werkmap met wijzigingen die nog niet gecommit zijn. Ga verder als ik "gedaan" zeg.`,
+      "3. Lees `CLAUDE.md`, `docs/WERKWIJZE.md`, `project.config.json`, `docs/PROJECTPLAN.md`, `docs/patronen/README.md` en `docs/lessen/README.md`.",
+      "4. Draai `pnpm template:apply` en volg de slottekst. Weigert apply omdat de werkmap niet schoon is, stop dan en zeg het me: git doe ik zelf.",
+      "5. Leid uit het projectplan een eerste `docs/SPEC.md` af: het datamodel, de kernflows, de rechtenmatrix in `lib/auth/actions.ts` en `lib/auth/matrix.ts`, de roadmap met de fasen in `docs/ROADMAP.md`, en de besluiten die uit het plan volgen als D13 en verder, elk met de prijs erbij. Lever dat op als versie v0.02. Bouw verder nog niets: geen schermen, geen tabellen, geen migraties.",
+      "6. Staat er in het plan nog een cursieve aanwijzing, dan is dat kopje niet ingevuld. Vul het niet stil in: doe een aanname, zeg welke, en zet hem bij de open vragen.",
+      "7. Lever op met de open vragen (genummerd, met wie het antwoord heeft), het handwerk buiten de code (met de handleiding erbij), de namen van de variabelen die ik in Vercel moet zetten met per naam de omgevingen (alleen de namen, nooit een waarde), en wat je bewust open liet en waarom.",
+    ];
+    return [
+      `Dit is de eerste ronde van ${t(p.name)} (\`${slug}\`), een project uit het template BB_foundation_webapp. Hieronder staan de drie bestanden uit de wizard; zet ze zelf op hun plek: \`project.config.json\` in de hoofdmap van de repo, \`docs/PROJECTPLAN.md\` in de map \`docs\` en \`${checklist}\` in de map \`docs/handleiding\`. Ga daarna verder met de stappen onder "Wat je doet", en begin pas aan stap 3 als ik heb gezegd dat de bestanden gecommit zijn.`,
+      "",
+      "## Bestand 1: `project.config.json`, in de hoofdmap",
+      "",
+      ...fenced(`${clean(JSON.stringify(buildConfig(), null, 2))}\n`, "json"),
+      "",
+      "## Bestand 2: `docs/PROJECTPLAN.md`",
+      "",
+      ...fenced(clean(buildPlan()), "markdown"),
+      "",
+      `## Bestand 3: \`${checklist}\``,
+      "",
+      ...fenced(clean(buildChecklist()), "markdown"),
+      "",
+      "## Wat je doet",
+      "",
+      ...steps,
+      "",
+      "Git doe ik zelf: geen commits, branches of pushes.",
+      "",
+    ].join("\n");
+  }
+
+  /* Start. */
+  function buildTimezoneList() {
+    let zones = [];
+    try { zones = Intl.supportedValuesOf("timeZone"); } catch { zones = []; }
+    if (!zones.length) zones = ["Europe/Amsterdam", "Europe/Brussels", "Europe/Berlin", "Europe/London", "Europe/Paris", "UTC"];
+    document.body.append(h("datalist", { id: "tz-list" }, zones.map((zone) => h("option", { value: zone }))));
+  }
+  state.resume = state.step || state.maxStep;
+  state.step = 0;
+  applyHash();
+  window.addEventListener("hashchange", () => {
+    if (!fromHash()) return;
+    applyHash();
+    summary = { step: -1, items: [] };
+    shown.clear();
+    render(true);
+  });
+  guardLogo();
+  buildTimezoneList();
+  render(false);
+})();
+</script>
+</body>
+</html>

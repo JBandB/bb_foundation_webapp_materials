@@ -1,0 +1,4 @@
+# Welke pakketten een install-script mogen draaien. Zie pnpm.io/settings.
+# esbuild is de bundler onder tsx, waarmee de tests de tooling van het template draaien.
+allowBuilds:
+  esbuild: true

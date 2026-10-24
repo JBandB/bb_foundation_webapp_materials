@@ -1,0 +1,214 @@
+{
+  "uitleg": "De schermafbeeldingen bij de stappen van de wizard. Bron van wizard/index.html: ci/schermen-opnemen.mjs neemt ze op en bedt deze lijst daar in. Kaders in procenten van het beeld: x en y linksboven, b breed, h hoog.",
+  "schermen": [
+    {
+      "id": "github-aanmelden",
+      "opname": "openbaar",
+      "bestand": null,
+      "alt": "De aanmeldpagina van GitHub, met het veld voor je e-mailadres.",
+      "standVan": null,
+      "uitleg": "https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github",
+      "kaders": [],
+      "klikpad": [
+        "Ga naar github.com/signup.",
+        "Vul je e-mailadres in en klik Continue.",
+        "Kies een wachtwoord en een gebruikersnaam, en klik telkens Continue.",
+        "Los de controlepuzzel op en vul de code in die GitHub je mailt.",
+        "Kies het gratis plan (Free)."
+      ]
+    },
+    {
+      "id": "vercel-aanmelden",
+      "opname": "openbaar",
+      "bestand": "img/vercel-aanmelden.webp",
+      "alt": "De aanmeldpagina van Vercel, waar je het Hobby-plan kiest.",
+      "standVan": "2026-10-15",
+      "uitleg": "https://vercel.com/docs/accounts/create-an-account",
+      "kaders": [
+        {
+          "x": 34.3,
+          "y": 45.3,
+          "b": 31.4,
+          "h": 6.5,
+          "label": "Continue with GitHub"
+        }
+      ]
+    },
+    {
+      "id": "git-windows",
+      "opname": "openbaar",
+      "bestand": "img/git-windows.webp",
+      "alt": "De downloadpagina van Git voor Windows.",
+      "standVan": "2026-10-15",
+      "uitleg": "https://git-scm.com/book/en/v2/Getting-Started-Installing-Git",
+      "kaders": [
+        {
+          "x": 34.6,
+          "y": 42.8,
+          "b": 16.3,
+          "h": 3.5,
+          "label": "Git for Windows/x64 Setup"
+        }
+      ]
+    },
+    {
+      "id": "nodejs-download",
+      "opname": "openbaar",
+      "bestand": "img/nodejs-download.webp",
+      "alt": "De downloadpagina van Node.js, met de Windows Installer.",
+      "standVan": "2026-10-15",
+      "uitleg": "https://nodejs.org/en/download",
+      "kaders": [
+        {
+          "x": 8.3,
+          "y": 93.1,
+          "b": 18.4,
+          "h": 6.3,
+          "label": "Windows Installer (.msi)"
+        }
+      ]
+    },
+    {
+      "id": "vscode-download",
+      "opname": "openbaar",
+      "bestand": "img/vscode-download.webp",
+      "alt": "De downloadpagina van VS Code, met de knop voor Windows.",
+      "standVan": "2026-10-15",
+      "uitleg": "https://code.visualstudio.com/docs/setup/windows",
+      "kaders": [
+        {
+          "x": 7.3,
+          "y": 64,
+          "b": 24.8,
+          "h": 7.3,
+          "label": "Download voor Windows"
+        }
+      ]
+    },
+    {
+      "id": "claude-code-installeren",
+      "opname": "openbaar",
+      "bestand": "img/claude-code-installeren.webp",
+      "alt": "De uitleg van Anthropic over de extensie Claude Code in VS Code.",
+      "standVan": "2026-10-15",
+      "uitleg": "https://code.claude.com/docs/en/vs-code",
+      "kaders": [
+        {
+          "x": 30.4,
+          "y": 31.7,
+          "b": 12,
+          "h": 4.1,
+          "label": "Install for VS Code"
+        }
+      ]
+    },
+    {
+      "id": "github-use-template",
+      "opname": "ingelogd",
+      "bestand": null,
+      "alt": "De repo van het template op GitHub, met de knop Use this template.",
+      "standVan": null,
+      "uitleg": "https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template",
+      "kaders": [],
+      "klikpad": [
+        "Open github.com/JBandB/bb_foundation_webapp.",
+        "Klik rechtsboven op de groene knop Use this template, dan Create a new repository.",
+        "Kies bij Owner je eigen account en geef de repo de naam van je tool.",
+        "Zet hem op Private.",
+        "Klik Create repository."
+      ]
+    },
+    {
+      "id": "vscode-clone",
+      "opname": "handmatig",
+      "bestand": null,
+      "alt": "VS Code met de opdracht Git: Clone en de keuze Clone from GitHub.",
+      "standVan": null,
+      "uitleg": "https://code.visualstudio.com/docs/sourcecontrol/intro-to-git#_clone-a-repository-locally",
+      "kaders": [],
+      "klikpad": [
+        "Open VS Code.",
+        "Druk Ctrl+Shift+P, typ Git: Clone en druk Enter.",
+        "Kies Clone from GitHub. Log in bij GitHub als VS Code erom vraagt.",
+        "Kies je nieuwe repo uit de lijst.",
+        "Kies je werkmap buiten OneDrive, en klik Open als VS Code vraagt of je de repo wilt openen."
+      ]
+    },
+    {
+      "id": "claude-paneel",
+      "opname": "handmatig",
+      "bestand": null,
+      "alt": "Het Claude-paneel in VS Code, waarin je de startprompt plakt.",
+      "standVan": null,
+      "uitleg": "https://code.claude.com/docs/en/vs-code",
+      "kaders": [],
+      "klikpad": [
+        "Klik rechtsboven in VS Code op het oranje sterretje: het Claude-paneel gaat open.",
+        "Klik in het invoerveld onderaan het paneel.",
+        "Plak de startprompt met Ctrl+V en druk Enter."
+      ]
+    },
+    {
+      "id": "vscode-commit-sync",
+      "opname": "handmatig",
+      "bestand": null,
+      "alt": "Source Control in VS Code, met het veld voor de boodschap en de knop Commit.",
+      "standVan": null,
+      "uitleg": "https://code.visualstudio.com/docs/sourcecontrol/overview",
+      "kaders": [],
+      "klikpad": [
+        "Klik links op het icoon met de vertakking: Source Control.",
+        "Typ bovenaan een korte boodschap, bijvoorbeeld docs: projectplan uit de wizard.",
+        "Klik Commit. Vraagt VS Code of alle wijzigingen mee moeten: klik Yes.",
+        "Klik Sync Changes."
+      ]
+    },
+    {
+      "id": "vercel-nieuw-project",
+      "opname": "ingelogd",
+      "bestand": null,
+      "alt": "Vercel, Add New Project, met de lijst van je repo's en de knop Import.",
+      "standVan": null,
+      "uitleg": "https://vercel.com/docs/getting-started-with-vercel/import",
+      "kaders": [],
+      "klikpad": [
+        "Ga naar vercel.com en log in met GitHub.",
+        "Klik rechtsboven op Add New, dan Project.",
+        "Klik bij je repo op Import. Staat hij er niet bij: klik Adjust GitHub App Permissions en geef Vercel toegang tot die repo.",
+        "Laat de instellingen staan en klik Deploy."
+      ]
+    },
+    {
+      "id": "vercel-storage-neon",
+      "opname": "ingelogd",
+      "bestand": null,
+      "alt": "Het tabblad Storage van een Vercel-project, met Create Database en Neon.",
+      "standVan": null,
+      "uitleg": "https://vercel.com/marketplace/neon",
+      "kaders": [],
+      "klikpad": [
+        "Open je project in Vercel.",
+        "Klik op het tabblad Storage.",
+        "Klik Create Database en kies Neon.",
+        "Kies regio Frankfurt en het gratis plan, en klik Create.",
+        "Koppel de database aan Production, Preview en Development, en klik Connect."
+      ]
+    },
+    {
+      "id": "vercel-variabelen",
+      "opname": "ingelogd",
+      "bestand": null,
+      "alt": "Settings, Environment Variables in Vercel, met de velden Key en Value.",
+      "standVan": null,
+      "uitleg": "https://vercel.com/docs/environment-variables",
+      "kaders": [],
+      "klikpad": [
+        "Open je project in Vercel.",
+        "Klik Settings, dan Environment Variables.",
+        "Vul bij Key de naam in die Claude noemde, en bij Value de waarde. Plak de waarde nooit in de chat.",
+        "Kies de omgevingen die Claude noemde en klik Save.",
+        "Ga naar Deployments en klik bij de bovenste op Redeploy, zodat de nieuwe waarde werkt."
+      ]
+    }
+  ]
+}

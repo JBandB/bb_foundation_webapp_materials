@@ -1,0 +1,4 @@
+node_modules/
+# Het template op de versie uit template.json, opgehaald door ci/template.mjs.
+.template/
+test-results/

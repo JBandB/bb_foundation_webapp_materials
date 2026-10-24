@@ -1,0 +1,19 @@
+{
+  "name": "bb-foundation-webapp-materials",
+  "private": true,
+  "description": "De wizard en het lesmateriaal bij het template BB_foundation_webapp.",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "template": "node ci/template.mjs",
+    "test": "node ci/geen-em-dash.mjs && node --test ci/controle-laptop.test.mjs && node ci/wizard-smoke.mjs",
+    "smoke": "node ci/wizard-smoke.mjs",
+    "toegang": "node ci/wizard-toegang.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "tsx": "4.23.15"
+  }
+}

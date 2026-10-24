@@ -1,0 +1,42 @@
+# De wizard tegen het template op de versie uit template.json: geen em-dash, het controlescript
+# loopt gelijk met het template, en de rooktest loopt alle pagina's door in een browser.
+name: Wizard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  wizard:
+    name: De wizard doorlopen in een browser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Haalt het template op de tag uit template.json op in .template/.
+      - name: Het template ophalen
+        run: node ci/template.mjs
+
+      - name: Geen em-dash
+        run: node ci/geen-em-dash.mjs
+
+      - name: Controlescript gelijk met het template
+        run: node --test ci/controle-laptop.test.mjs
+
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - name: Wizard-rooktest
+        run: node ci/wizard-smoke.mjs
