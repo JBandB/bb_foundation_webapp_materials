@@ -1,0 +1,44 @@
+# Dependabot: wekelijks een pull request voor wat bijgewerkt kan worden, en meteen een zodra er een
+# advisory op een afhankelijkheid staat.
+#
+# Alleen versie-updates staan hier. De meldingen (Dependabot alerts) en de security-updates zijn een
+# instelling op de repo (Settings, Code security): zet die met de hand aan.
+#
+# Een versie-update wacht zeven dagen na publicatie (cooldown): een pakket dat net is uitgebracht kan
+# kwaadaardig of instabiel zijn, en dat blijkt meestal in de eerste dagen. Een security-update valt
+# daar niet onder en komt meteen. De actions in de CI staan op een commit-SHA; Dependabot werkt die en
+# het versiecommentaar bij.
+#
+# Een pull request van Dependabot draait de rooktest; merge hem pas als die groen is.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/Amsterdam
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    labels:
+      - dependencies
+    groups:
+      # Eén pull request per week voor alles wat minor of patch is: te overzien en te testen.
+      minor-en-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/Amsterdam
+    cooldown:
+      default-days: 7
+    labels:
+      - dependencies

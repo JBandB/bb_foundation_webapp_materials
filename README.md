@@ -29,7 +29,6 @@ oude links werken.
 | `wizard/` | de pagina's, het inlogscherm (`inloggen.js`), de accounts (`toegang.js`), de huisstijl (`brand/`), de schermafbeeldingen (`img/`, `schermen.json`) en het controlescript voor de laptop |
 | `ci/` | de rooktest, het beheer van de accounts, het opnemen van schermen, de controle op em-dashes en de koppeling met het template |
 | `template.json` | de versie van het template waar deze wizard bij hoort |
-| `doorverwijzing/` | pagina's voor het oude adres van de wizard, zie onderaan |
 
 ## Het contract met het template
 
@@ -216,7 +215,5 @@ opname voordat je hem commit**. De VS Code-schermen (`opname: handmatig`) maak j
 ## Het oude adres
 
 Tot en met template v1.2.0 stond de wizard in de repo van het template, op
-`https://jbandb.github.io/bb_foundation_webapp/wizard/`. In `doorverwijzing/` staan vier kleine
-pagina's die van het oude adres naar het nieuwe sturen. Ze horen in de repo van het template, op een
-eigen branch `gh-pages` die alleen GitHub Pages gebruikt; projecten krijgen die branch nooit, want
-die komen uit `main`. Zie `doorverwijzing/README.md`.
+`https://jbandb.github.io/bb_foundation_webapp/wizard/`. Dat adres is offline; de pagina's staan alleen
+nog hier.

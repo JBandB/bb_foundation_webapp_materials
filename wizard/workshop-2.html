@@ -1083,7 +1083,7 @@ footer.foot p { margin: .25rem 0; }
       nu: "Je tool draait nu op je eigen laptop, met de kopie van je database en verzonnen gegevens. Wat je hier doet, ziet niemand anders.",
       doen: [
         OL(["Haal de waarden op:", pre("vercel env pull .env.local")],
-          "Open `.env.local` en zet er onderaan twee regels bij: `AUTH_DEV_LOGIN=1`, en `SEED_TARGET=` met het endpoint-id van `dev` (in Neon bij de branch, iets als `ep-woord-woord-a1b2c3d4`).",
+          "Open `.env.local` en zet er onderaan drie regels bij: `APP_ENV=local`, `AUTH_DEV_LOGIN=1`, en `SEED_TARGET=` met het endpoint-id van `dev` (in Neon bij de branch, iets als `ep-woord-woord-a1b2c3d4`). Elke `vercel env pull` haalt ze weer weg: zet ze er daarna opnieuw in.",
           ["Plak in het Claude-paneel:", pre("Controleer met pnpm db:status of ik op de dev-branch werk, en zet de database klaar met pnpm db:migrate en pnpm db:seed.")],
           ["Start je tool:", pre("pnpm dev")],
           "Open `http://localhost:3000` en log in met de dev-login onderaan het inlogscherm. Kies ook eens een andere rol."),
@@ -1094,21 +1094,24 @@ footer.foot p { margin: .25rem 0; }
       misgaat: [
         ["pnpm db:seed weigert", "`SEED_TARGET` ontbreekt of wijst naar een andere branch. Dat is de bedoeling: de seed schrijft alleen waar jij het zegt."],
         ["De dev-login staat er niet", "`AUTH_DEV_LOGIN=1` ontbreekt in `.env.local`. Zet hem erin en start `pnpm dev` opnieuw."],
+        ["De app start niet en meldt dat APP_ENV niet local is", "`APP_ENV=local` ontbreekt in `.env.local`, meestal na `vercel env pull`. Zet hem terug en start `pnpm dev` opnieuw."],
         ["Claude meldt dat ik op productie zit", "De Development-waarden uit stap 3 staan er nog niet goed in. Doe stap 3 opnieuw, en dan `vercel env pull .env.local`."],
         ["De eerste keer duurt lang", "De dev-branch slaapt en wordt wakker. Wacht tien seconden."],
       ],
     }) },
     { title: "Previews met een eigen database", nav: "Previews", body: () => ({
       lead: "Een preview is een testversie van je tool op een eigen adres, met een eigen kopie van de database. Daarvoor zet je twee dingen aan.",
-      nu: "Je zet twee schakelaars om. Vanaf nu bouwt Vercel bij elke pull request een testversie van je tool, met een eigen kopie van je database.",
+      nu: "Je zet twee schakelaars om. Vanaf nu bouwt Vercel alleen je live tool en de testversie op `release/next`, en die testversie krijgt een eigen kopie van je database.",
       doen: [
-        OL("Vercel, je project, **Settings, Git**. Kies onder **Ignored Build Step** de optie **Only build production and pull requests**, en sla op.",
-          "Neon, de instellingen van de koppeling met Vercel: zet **een branch per preview-deployment** aan, en **auto-delete** als de pull request sluit."),
+        OL(["Vercel, je project, **Settings, Build and Deployment**, het blok **Ignored Build Step**. Zet Behavior op **Custom**, plak deze opdracht en sla op:", pre('if [ "$VERCEL_GIT_COMMIT_REF" = "main" ] || [ "$VERCEL_GIT_COMMIT_REF" = "release/next" ]; then exit 1; else exit 0; fi')],
+          "Neon, de instellingen van de koppeling met Vercel: zet **een branch per preview-deployment** aan, **auto-delete** als de pull request sluit, en **Automatically delete obsolete branches**.",
+          "GitHub, je repo, **Settings, General**: zet **Automatically delete head branches** aan."),
         h("p", { class: "hint" }, "De details: ", guideLink("03", "03-vercel.md"), ", stap 5, en ", guideLink("04", "04-neon.md"), ", stap 3."),
       ],
-      waarom: "De eerste zorgt dat Vercel alleen een preview bouwt als je erom vraagt, met een pull request. De tweede geeft elke preview een eigen kopie van je database, zodat een test je echte gegevens niet verandert.",
-      gelukt: [P("Beide instellingen staan aan.")],
+      waarom: "De eerste zorgt dat Vercel alleen `main` en `release/next` bouwt: een andere branch, ook een update van Dependabot, kost geen build en geen database. De tweede geeft de preview een eigen kopie van je database, zodat een test je echte gegevens niet verandert. De derde ruimt na een merge de branch en zijn database vanzelf op.",
+      gelukt: [P("De drie instellingen staan aan. Een push op een andere branch staat in Vercel bij **Deployments** als Canceled.")],
       misgaat: [
+        ["Ik zie de optie Custom niet", "De namen in Vercel verschuiven weleens. Kies de optie waarin je zelf een opdracht invult, en plak dezelfde opdracht."],
         ["Ik vind de instelling in Neon niet", "Open Neon via Vercel (Storage, je database, Open in Neon) en zoek bij de integraties naar Vercel."],
         ["Kan ik zonder de tweede instelling?", "De preview werkt dan wel, maar op je productiedatabase. Dan verandert een test je echte gegevens. Zet hem aan voordat je verdergaat."],
       ],
@@ -1129,7 +1132,8 @@ footer.foot p { margin: .25rem 0; }
       waarom: "Op `main` zet Vercel alles meteen op productie, ook een fout. Op `release/next` zie je eerst of het werkt. Gaat er iets mis, dan merkt alleen jij het.",
       gelukt: [P("Wat je op de preview aanmaakte, staat niet in je live tool. Na de merge toont je live tool de nieuwe versie, en `release/next` bestaat niet meer.")],
       misgaat: [
-        ["Na Publish Branch bouwt Vercel niets", "Zo is het ingesteld: zonder pull request geen preview. Open de pull request."],
+        ["Na Publish Branch bouwt Vercel niets", "De branch heet niet precies `release/next`: Vercel bouwt alleen die en `main` (stap 5)."],
+        ["De eerste build faalt en noemt `PRODUCTION_DB_ENDPOINT` of de productiebranch", "De preview had nog geen eigen database, omdat de pull request er nog niet was; de controle hield het tegen en je live tool is niet geraakt. Open de pull request en klik in Vercel bij die deployment op **Redeploy**."],
         ["Create new branch zegt dat `release/next` al bestaat", "De vorige ronde is niet opgeruimd. Doe eerst punt 7, dan punt 1."],
         ["De preview toont nog de vorige versie", "De bouw loopt nog, of de commit staat niet op GitHub: klik **Sync Changes**."],
         ["Een migratie faalt in de bouw van de preview", "Precies waarvoor de preview er is: productie is niet geraakt. Geef Claude de melding uit de build-log."],

@@ -2466,7 +2466,7 @@ footer.foot p { margin: .25rem 0; }
         box(false, `Een bewaarbeleid op de container als de bestanden onder een bewaarplicht vallen.${t(state.modules.retention) ? ` Bewaartermijn volgens het plan: ${bare(state.modules.retention)}.` : ""}`));
     }
     lines.push("", "## Lokaal werken (handleiding 07)", "",
-      box(false, "`vercel env pull .env.local`, `AUTH_DEV_LOGIN=1` erbij, `pnpm install`, `pnpm db:status`."),
+      box(false, "`vercel env pull .env.local`, `APP_ENV=local` en `AUTH_DEV_LOGIN=1` erbij, `pnpm install`, `pnpm db:status`."),
       box(false, "`.env.local` staat niet in `git status`."),
       "", "## Eerste deploy en rooktest (handleiding 08)", "",
       box(false, "De eerste deploy naar productie slaagt en `pnpm smoke:prod` is groen."),
