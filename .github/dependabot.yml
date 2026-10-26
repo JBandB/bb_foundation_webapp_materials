@@ -42,3 +42,9 @@ updates:
       default-days: 7
     labels:
       - dependencies
+    groups:
+      # Alle actions in één pull request, ook een nieuwe major: dat is meestal alleen een nieuwere
+      # Node-runtime, en de CI op die pull request laat zien of het werkt.
+      actions:
+        patterns:
+          - "*"

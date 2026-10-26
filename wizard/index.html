@@ -516,9 +516,13 @@ footer.foot p { margin: .25rem 0; }
   const STORAGE_KEY = "foundation-wizard:v1";
   const PARTS_KEY = "foundation-wizard-delen:v1";
   const OLD_PREP_KEY = "foundation-voorbereiding:v1";
+  /* Het aantal stappen van deel A. Versie 2 van de bewaarde stand kreeg stap 7 erbij, de huisstijl in Claude. */
+  const PREP_LAST = 8;
   const REPO_URL = "https://github.com/JBandB/bb_foundation_webapp";
   /* De repo van deze wizard en het lesmateriaal; het template staat in REPO_URL. */
   const MATERIALS_URL = "https://github.com/JBandB/bb_foundation_webapp_materials";
+  /* De uitleg van Anthropic over Claude Design, ook voor een design system. */
+  const DESIGN_GUIDE_URL = "https://support.claude.com/en/articles/14604416-getting-started-with-claude-design";
   const SLUG = /^[a-z][a-z0-9-]{1,30}$/;
   const ROLE = /^[a-z][a-z0-9_]{1,30}$/;
   const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
@@ -537,7 +541,7 @@ footer.foot p { margin: .25rem 0; }
   ];
   /* De drie delen. Deel B is de oorspronkelijke wizard, deel A en C zijn gidsen met vinkjes. */
   const PARTS = [
-    { id: "voorbereiden", letter: "A", name: "Voorbereiden", time: "thuis, ongeveer 45 minuten" },
+    { id: "voorbereiden", letter: "A", name: "Voorbereiden", time: "thuis, ongeveer een uur" },
     { id: "ontwerpen", letter: "B", name: "Je tool ontwerpen", time: "ongeveer een uur" },
     { id: "live", letter: "C", name: "Op de dag: live zetten", time: "ongeveer een uur" },
   ];
@@ -653,7 +657,7 @@ footer.foot p { margin: .25rem 0; }
       accounts: { github: blankAccount(), vercel: blankAccount(), neon: blankAccount(), m365: blankAccount(), azure: blankAccount(), mail: blankAccount() },
       commercial: "",
       budget: { total: "", split: { github: "", vercel: "", neon: "", m365: "", azure: "", mail: "" } },
-      brand: { shortName: "", shortEdited: false, colours: { ...DEFAULT_COLOURS }, darkMode: "auto", radius: "sharp", logoKind: "wordmark", logoSvg: "", logoName: "" },
+      brand: { shortName: "", shortEdited: false, colours: { ...DEFAULT_COLOURS }, darkMode: "auto", radius: "sharp", logoKind: "wordmark", logoSvg: "", logoName: "", designSystem: "" },
       phases: [blankPhase()],
     };
   }
@@ -689,25 +693,29 @@ footer.foot p { margin: .25rem 0; }
   let state = load();
 
   /* De toestand van deel A en C, en welk deel open staat. Los van deel B, zodat de sleutel van B blijft werken. */
-  function freshParts() { return { version: 1, part: "voorbereiden", prep: { step: 0, done: {} }, live: { step: 0, done: {} } }; }
+  function freshParts() { return { version: 2, part: "voorbereiden", prep: { step: 0, done: {} }, live: { step: 0, done: {} } }; }
+  /* Een stapnummer van deel A uit een stand van zeven stappen: stap 7 (Klaar) is nu stap 8. */
+  const prepFromSeven = (n) => (n === 7 ? 8 : n);
   function loadParts() {
     const fresh = freshParts();
     const saved = readJson(PARTS_KEY);
-    if (saved && saved.version === 1) {
+    if (saved && (saved.version === 1 || saved.version === 2)) {
       if (PARTS.some((part) => part.id === saved.part)) fresh.part = saved.part;
-      for (const [key, last] of [["prep", 7], ["live", 8]]) {
+      const seven = saved.version === 1;
+      for (const [key, last] of [["prep", seven ? 7 : PREP_LAST], ["live", 8]]) {
+        const map = key === "prep" && seven ? prepFromSeven : (n) => n;
         const step = Math.floor(Number(saved[key] && saved[key].step));
-        fresh[key].step = step >= 0 && step <= last ? step : 0;
-        for (let n = 1; n <= last; n += 1) if (saved[key] && saved[key].done && saved[key].done[n] === true) fresh[key].done[n] = true;
+        fresh[key].step = step >= 0 && step <= last ? map(step) : 0;
+        for (let n = 1; n <= last; n += 1) if (saved[key] && saved[key].done && saved[key].done[n] === true) fresh[key].done[map(n)] = true;
       }
       return fresh;
     }
     /* Wie de oude voorbereidingspagina gebruikte, houdt zijn vinkjes en zijn halve pagina. */
     const old = readJson(OLD_PREP_KEY);
     if (old && old.version === 1) {
-      for (let n = 1; n <= 7; n += 1) if (old.done && old.done[n] === true) fresh.prep.done[n] = true;
+      for (let n = 1; n <= 7; n += 1) if (old.done && old.done[n] === true) fresh.prep.done[prepFromSeven(n)] = true;
       const step = Math.floor(Number(old.step));
-      fresh.prep.step = step >= 0 && step <= 7 ? step : 0;
+      fresh.prep.step = step >= 0 && step <= 7 ? prepFromSeven(step) : 0;
       adoptOldAnswers(old.answers || {});
     }
     return fresh;
@@ -1028,7 +1036,7 @@ footer.foot p { margin: .25rem 0; }
   const partById = (id) => PARTS.find((part) => part.id === id);
   const doneCount = (key) => Object.keys(parts[key].done).length;
   function partProgress(id) {
-    if (id === "voorbereiden") { const n = doneCount("prep"); return { ratio: n / 7, text: n === 7 ? "klaar" : `${n} van 7 klaar` }; }
+    if (id === "voorbereiden") { const n = doneCount("prep"); return { ratio: n / PREP_LAST, text: n === PREP_LAST ? "klaar" : `${n} van ${PREP_LAST} klaar` }; }
     if (id === "live") { const n = doneCount("live"); return { ratio: n / 8, text: n === 8 ? "klaar" : `${n} van 8 klaar` }; }
     if (designDone()) return { ratio: 1, text: "klaar" };
     return { ratio: state.maxStep / 8, text: state.maxStep > 0 ? `tot stap ${state.maxStep} van 8` : "nog niet begonnen" };
@@ -1378,6 +1386,25 @@ footer.foot p { margin: .25rem 0; }
         ["Mijn antwoorden zijn weg", "De browser heeft ze niet bewaard, bijvoorbeeld in een privévenster of na het wissen van de browsergegevens. Open de wizard steeds in dezelfde browser, niet in een privévenster."],
       ],
     }) },
+    { title: "Je huisstijl in Claude", nav: "Huisstijl", body: () => ({
+      lead: "Je tool krijgt de huisstijl van je organisatie. Je laat Claude er een design system van maken, en haalt er twee dingen uit: het logo en een blok met de kleuren. Die lees je in deel B, stap 6 in.",
+      doen: [
+        OL(["Open Claude en maak met Claude Design een nieuw design system. Hoe dat gaat, staat in ", ext(DESIGN_GUIDE_URL, "de uitleg van Anthropic"), ". Claude Design zit in Claude zelf; het oude adres claude.ai/design sluit in december 2026."],
+          "Geef het wat je hebt: het adres van de website van je organisatie, het logo, en een huisstijlgids als die er is. Geen vertrouwelijke stukken.",
+          "Bekijk wat Claude maakt. Kloppen de kleuren en het logo? Pas het aan in de chat tot het klopt.",
+          "Vraag het logo als SVG-bestand en download het. Kies een versie die op een donkere achtergrond leesbaar is: in je tool staat het logo in een donkere balk.",
+          ["Plak deze vraag in de chat van je design system en bewaar het antwoord:", pre("Geef de huisstijl van dit design system als één JSON-blok voor mijn webtool, met precies deze sleutels:\n{\"name\": \"\", \"primary\": \"\", \"accent\": \"\", \"surface\": \"\", \"ink\": \"\", \"success\": \"\", \"warning\": \"\", \"danger\": \"\", \"info\": \"\", \"radius\": \"\", \"darkMode\": \"\"}\nname is de naam van dit design system. De kleuren als hexcode: primary is de hoofdkleur voor knoppen en links, accent de tweede kleur, surface de achtergrond van de pagina in licht, ink de tekstkleur in licht. success, warning, danger en info zijn kleuren voor gelukt, let op, fout en mededeling, goed leesbaar als tekst op een witte achtergrond.\nradius is sharp als de stijl strak is en soft als hij afgerond is. darkMode is auto, of off als de huisstijl alleen licht is.\nAlleen het JSON-blok, zonder uitleg.")]),
+        note("Bewaar het blok en het logo bij je halve pagina. In deel B, stap 6 plak je het blok en kies je het logo; de wizard controleert het contrast."),
+      ],
+      waarom: "Eén plek voor je huisstijl: wat Claude in het design system vastlegt, gebruikt je tool, en straks ook een presentatie of een mail. De tool maakt er zelf een lichte en een donkere modus van en stelt een kleur bij die niet leesbaar genoeg is.",
+      gelukt: [P("Je hebt een design system in Claude, het logo als SVG, en een blok met de naam en elf waarden tussen accolades.")],
+      misgaat: [
+        ["Ik zie Claude Design niet", ["Het zit in Claude, op elk betaald abonnement. Kijk in ", ext(DESIGN_GUIDE_URL, "de uitleg van Anthropic"), ". Lukt het niet, sla deze stap over en kies in deel B zelf twee kleuren."]],
+        ["Mijn organisatie heeft geen huisstijl", "Laat Claude er een voorstellen vanuit de naam en het doel van je tool. Je kunt hem later vervangen."],
+        ["Het logo is geen SVG", "Vraag Claude het logo na te maken als eenvoudige SVG, of kies in deel B het woordmerk: de korte naam als tekst."],
+        ["Claude geeft meer dan alleen het blok", "Kopieer gewoon het hele antwoord. De wizard zoekt het blok tussen de accolades er zelf uit."],
+      ],
+    }) },
     { title: "Klaar", body: () => ({
       lead: "Wat je meeneemt naar de dag zelf, en wat je daar gaat doen.",
       doen: [
@@ -1385,9 +1412,10 @@ footer.foot p { margin: .25rem 0; }
           "Je telefoon met de authenticator-app.",
           "Je inloggegevens voor GitHub, Vercel en Claude, liefst in een wachtwoordmanager.",
           "Je halve pagina uit stap 6: die staat in deze browser, dus neem de laptop mee waarop je hem schreef.",
-          "De schermafbeelding van het controlescript uit stap 5."),
+          "De schermafbeelding van het controlescript uit stap 5.",
+          "Het logo en het blok uit je design system uit stap 7, als je die hebt gemaakt."),
         H3("Je stand"),
-        h("ul", { class: "overview" }, PREP_STEPS.slice(1, 7).map((step, i) => {
+        h("ul", { class: "overview" }, PREP_STEPS.slice(1, PREP_LAST).map((step, i) => {
           const done = Boolean(parts.prep.done[i + 1]);
           return h("li", {}, h("span", { class: "mark", "aria-hidden": "true" }, done ? "\u2713" : ""),
             h("span", {}, h("a", { href: `#voorbereiden-${i + 1}`, onclick: (event) => { event.preventDefault(); openPart("voorbereiden", i + 1); } }, `Stap ${i + 1}: ${step.title}`), done ? ", klaar" : ", nog niet afgevinkt"));
@@ -1395,7 +1423,7 @@ footer.foot p { margin: .25rem 0; }
         H3("Daarna"),
         P("Wie wil, ontwerpt de tool thuis al in **deel B**: dat is de rest van de wizard, en je halve pagina staat daar al in. Op de dag zelf volg je **deel C**: acht stappen van een lege repo tot een tool die online staat."),
       ],
-      gelukt: [P("Stap 1 tot en met 6 zijn afgevinkt en je hebt alles uit het lijstje hierboven bij de hand.")],
+      gelukt: [P("Stap 1 tot en met 7 zijn afgevinkt en je hebt alles uit het lijstje hierboven bij de hand. Stap 7 mag je overslaan als je in deel B zelf kleuren kiest.")],
       misgaat: [["Een stap lukt niet en de dag is al dichtbij", "Meld het vooraf, met een schermafbeelding van de foutmelding. Kom liever met één bekend probleem dan met een laptop waarvan je het niet weet."]],
     }) },
   ];
@@ -1583,7 +1611,7 @@ footer.foot p { margin: .25rem 0; }
 
   function prepWelcome() {
     const texts = {
-      voorbereiden: "Accounts, software, git, een werkmap, het controlescript en je halve pagina. Thuis, een paar dagen van tevoren.",
+      voorbereiden: "Accounts, software, git, een werkmap, het controlescript, je halve pagina en je huisstijl in Claude. Thuis, een paar dagen van tevoren.",
       ontwerpen: "Wat je tool doet, voor wie, met welke rollen en welke huisstijl. Levert één ding op: de startprompt voor Claude Code.",
       live: "Op de dag zelf: van een lege repo tot een tool die online staat, in acht stappen.",
     };
@@ -1934,6 +1962,7 @@ footer.foot p { margin: .25rem 0; }
     const out = [
       h("p", { class: "lead" }, "De huisstijl van jouw tool. De generator van het template maakt hier het hele thema van, in licht en donker, en stelt een kleur bij die het contrast niet haalt. Hier zie je een benadering, en per kleurpaar of het de norm haalt."),
       h("p", {}, h("strong", {}, "Naam: "), t(state.project.name) || "nog niet ingevuld", ". Die pas je aan bij stap 1."),
+      designSystemImport(),
       field({ id: "f-short", label: "Korte naam", obj: b, key: "shortName", max: 20, hint: "Voor de rail en het tekstmerk, hoogstens 20 tekens. Volgt de naam tot je hem zelf aanpast.",
         input: (value) => { b.shortEdited = value.trim() !== ""; updateBrand(); },
         blur: (input) => { if (!input.value.trim()) { b.shortName = shortFrom(state.project.name); b.shortEdited = false; input.value = b.shortName; save(); updateBrand(); } } }),
@@ -1953,6 +1982,66 @@ footer.foot p { margin: .25rem 0; }
     ];
     updateBrand();
     return out;
+  }
+  /**
+   * Het blok uit een design system in Claude (deel A, stap 7) lezen: de naam, acht kleuren, de hoeken en
+   * de donkere modus. Puur, zodat de rooktest hem los kan aanroepen. Een waarde die niet klopt, wordt
+   * niet overgenomen en staat in de lijst met problemen; de rest wel.
+   */
+  function parseDesignBlock(text) {
+    const values = {};
+    const problems = [];
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start < 0 || end <= start) return { values, problems: ["Er staat geen blok tussen accolades in."] };
+    let data;
+    try { data = JSON.parse(text.slice(start, end + 1)); } catch { return { values, problems: ["Het blok is geen geldige JSON. Kopieer het hele antwoord van Claude opnieuw."] }; }
+    if (data === null || typeof data !== "object" || Array.isArray(data)) return { values, problems: ["Het blok is geen lijst met sleutels."] };
+    if (typeof data.name === "string" && data.name.trim()) values.name = data.name.trim().slice(0, 80);
+    for (const [key, name] of COLOURS) {
+      if (data[key] === undefined) continue;
+      const hex = typeof data[key] === "string" ? toHex6(data[key].trim().startsWith("#") ? data[key].trim() : `#${data[key].trim()}`) : "";
+      if (hex) values[key] = hex; else problems.push(`${name} (${key}) is geen hexcode.`);
+    }
+    if (data.radius !== undefined) {
+      const radius = String(data.radius).trim().toLowerCase();
+      if (radius === "sharp" || radius === "soft") values.radius = radius;
+      else if (radius === "round") values.radius = "soft";
+      else problems.push("Hoeken (radius) is niet sharp of soft.");
+    }
+    if (data.darkMode !== undefined) {
+      const dark = String(data.darkMode).trim().toLowerCase();
+      if (dark === "auto" || dark === "off") values.darkMode = dark;
+      else problems.push("Donkere modus (darkMode) is niet auto of off.");
+    }
+    return { values, problems };
+  }
+  function designSystemImport() {
+    const b = state.brand;
+    const area = h("textarea", { id: "f-ds-block", rows: 5, spellcheck: "false", class: "mono", "aria-describedby": "f-ds-hint f-ds-status f-ds-err" });
+    const status = h("p", { class: "hint", id: "f-ds-status", role: "status" }, b.designSystem ? `Ingelezen uit het design system ${b.designSystem}.` : "");
+    const error = h("p", { class: "error", id: "f-ds-err", role: "alert" });
+    const button = h("button", { type: "button", id: "f-ds-read" }, "Lees het blok in");
+    button.addEventListener("click", () => {
+      const { values, problems } = parseDesignBlock(area.value);
+      const colours = COLOURS.map(([key]) => key).filter((key) => values[key]);
+      for (const key of colours) b.colours[key] = values[key];
+      if (values.radius) b.radius = values.radius;
+      if (values.darkMode) b.darkMode = values.darkMode;
+      if (values.name) b.designSystem = values.name;
+      const read = colours.length + (values.radius ? 1 : 0) + (values.darkMode ? 1 : 0);
+      if (read > 0) save();
+      rerender();
+      const statusNow = document.getElementById("f-ds-status");
+      const errorNow = document.getElementById("f-ds-err");
+      if (statusNow) statusNow.textContent = read > 0 ? `${read} waarden ingelezen${values.name ? ` uit het design system ${values.name}` : ""}. Kijk hieronder naar de voorvertoning en het contrast.` : "";
+      if (errorNow) errorNow.textContent = problems.join(" ");
+      announce(read > 0 ? `${read} waarden uit het design system ingelezen.` : "Er is niets ingelezen.");
+    });
+    return h("fieldset", { class: "design-system" }, h("legend", {}, "Uit je design system"),
+      h("p", { class: "hint", id: "f-ds-hint" }, rich("Heb je in deel A, stap 7 een design system in Claude gemaakt? Plak hier het antwoord met het blok en klik op **Lees het blok in**. De kleuren, de hoeken en de donkere modus worden ingevuld; je kunt ze daarna nog aanpassen.")),
+      h("label", { for: "f-ds-block", class: "sr-only" }, "Het blok uit je design system"),
+      area, h("div", { class: "row" }, button), status, error);
   }
   function colourRow(key, name, text) {
     const colours = state.brand.colours;
@@ -2368,7 +2457,7 @@ footer.foot p { margin: .25rem 0; }
       `- **Commercieel gebruik:** ${commercial}`,
       `- **Budget:** ${total !== null ? `${total} euro per maand, verdeeld zoals in de tabel hieronder.` : "_nog in te vullen: wat mag het per maand kosten, en bij welke dienst staat het plafond?_"}`,
       `- **Bewaartermijnen en privacy:** ${retention}${sensitive}`,
-      `- **Huisstijl:** korte naam "${shortName()}", hoofdkleur \`${toHex6(b.colours.primary)}\`, accentkleur \`${toHex6(b.colours.accent)}\`, donkere modus ${b.darkMode === "auto" ? "automatisch" : "uit"}, ${b.radius === "soft" ? "zachte" : "strakke"} hoeken, ${b.logoKind === "image" ? "eigen logo in `public/brand/logo.svg`" : "woordmerk"}. Alle kleuren staan in \`project.config.json\`.`,
+      `- **Huisstijl:** korte naam "${shortName()}", hoofdkleur \`${toHex6(b.colours.primary)}\`, accentkleur \`${toHex6(b.colours.accent)}\`, donkere modus ${b.darkMode === "auto" ? "automatisch" : "uit"}, ${b.radius === "soft" ? "zachte" : "strakke"} hoeken, ${b.logoKind === "image" ? "eigen logo in `public/brand/logo.svg`" : "woordmerk"}${b.designSystem ? `, uit het design system \"${inline(b.designSystem)}\" in Claude; houd nieuwe schermen in die stijl, met de tokens van het template` : ""}. Alle kleuren staan in \`project.config.json\`.`,
       "", "**Accounts**", "", "| Dienst | Bestaat al | Van | Beheerder |", "|---|---|---|---|", ...accountRows(),
       "", "**Budget per dienst**", "", "| Dienst | Plan | Waar het plafond staat | Deel van het budget |", "|---|---|---|---|", ...budgetRows(),
     ];

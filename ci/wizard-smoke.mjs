@@ -144,15 +144,15 @@ try {
   check((await page.locator("a.part").count()) === 3, "de navigatie heeft drie delen");
   check((await page.locator("link[rel=icon]").getAttribute("href")) === "brand/sublogo-vierkant-donker.svg", "het favicon is het vierkante sublogo");
   await page.getByRole("link", { name: "Begin met deel A" }).click();
-  await headingIs("Stap 1 van 7", "deel A begint bij stap 1");
+  await headingIs("Stap 1 van 8", "deel A begint bij stap 1");
   check((await page.locator("#logo").getAttribute("src")) === "brand/logo-wit.svg", "na het welkom het logo zonder tagline");
   check((await page.locator("figure.shot, .shot-todo").count()) >= 2, "stap 1 toont schermafbeeldingen of een rustig kader");
   check((await page.locator(".shot-todo").count()) === 0 || ((await page.locator(".shot-todo strong").first().textContent()) === "Waar je klikt" && (await page.locator(".shot-todo li").count()) > 0), "een scherm zonder plaatje toont het klikpad in tekst");
   await page.getByLabel("Deze stap is klaar").check();
-  check((await partMeta("A")).startsWith("1 van 7 klaar"), `het vinkje telt mee in de navigatie (${await partMeta("A")})`);
+  check((await partMeta("A")).startsWith("1 van 8 klaar"), `het vinkje telt mee in de navigatie (${await partMeta("A")})`);
 
   // Deel A, stap 2: een plaatje met kaders die meeschalen.
-  await next("Stap 2 van 7");
+  await next("Stap 2 van 8");
   const figure = page.locator("figure.shot").filter({ has: page.locator(".kader") }).first();
   check((await figure.count()) === 1, "stap 2 heeft een schermafbeelding met een kader");
   if ((await figure.count()) === 1) {
@@ -169,10 +169,17 @@ try {
 
   // Deel A, stap 6: de halve pagina vult deel B.
   await page.goto(`${index}#voorbereiden-6`);
-  await headingIs("Stap 6 van 7", "de halve pagina opent via het adres");
+  await headingIs("Stap 6 van 8", "de halve pagina opent via het adres");
   for (const [id, text] of Object.entries(CASE.halfPage)) await page.fill(`#${id}`, text);
   await page.fill("#hp-count", "45");
   await page.check("#hp-audience-0");
+
+  // Deel A, stap 7: de huisstijl in Claude, met de vraag voor het blok.
+  await page.goto(`${index}#voorbereiden-7`);
+  await headingIs("Stap 7 van 8: Je huisstijl in Claude", "de huisstijl in Claude opent via het adres");
+  const designText = (await page.locator("main").textContent()) ?? "";
+  check(designText.includes('"primary": ""') && designText.includes('"darkMode": ""'), "stap 7 geeft de vraag voor het blok met de vaste sleutels");
+  check((await page.locator('a[href*="support.claude.com"]').count()) >= 1 && (await page.locator('a[href*="claude.ai/design"]').count()) === 0, "stap 7 linkt naar de uitleg van Anthropic, niet naar het oude adres");
 
   // Deel B.
   await page.getByRole("link", { name: /Je tool ontwerpen/ }).click();
@@ -239,6 +246,16 @@ try {
   // Stap 6: huisstijl van het project, met de standaardkleuren.
   check((await page.inputValue("#f-short")) === CASE.name, "de korte naam volgt de naam");
   check((await page.locator("#contrast li.pass").count()) >= 8, "de standaardkleuren halen het contrast");
+  // Het blok uit een design system: met tekst en code-fences eromheen, een ongeldige kleur, en round.
+  await page.fill("#f-ds-block", 'Hier is het blok:\n\`\`\`json\n{"name": "Huisstijl De Weide", "primary": "#1f5c8a", "accent": "c2410c", "surface": "#f8f6f1", "warning": "oranje", "radius": "round", "darkMode": "auto"}\n\`\`\`');
+  await page.click("#f-ds-read");
+  check((await page.inputValue("#c-primary")) === "#1f5c8a" && (await page.inputValue("#c-accent")) === "#c2410c" && (await page.inputValue("#c-surface")) === "#f8f6f1", "het blok vult de kleuren in, ook een hexcode zonder #");
+  check(await page.isChecked("#f-radius-1"), "round uit het design system wordt zachte hoeken");
+  check(((await page.textContent("#f-ds-err")) ?? "").includes("(warning)") && (await page.inputValue("#c-warning")) !== "oranje", "een ongeldige kleur wordt niet overgenomen en genoemd");
+  check(((await page.textContent("#f-ds-status")) ?? "").includes("Huisstijl De Weide"), "de status noemt het design system");
+  await page.fill("#f-ds-block", "geen blok");
+  await page.click("#f-ds-read");
+  check(((await page.textContent("#f-ds-err")) ?? "").includes("accolades") && (await page.inputValue("#c-primary")) === "#1f5c8a", "zonder blok verandert er niets en zegt de wizard waarom");
   await next("Stap 7");
 
   // Stap 7: één fase.
@@ -299,6 +316,8 @@ try {
 
   // Het projectplan, de checklist en de startprompt.
   const plan = files["PROJECTPLAN.md"];
+  check(plan.includes("uit het design system \"Huisstijl De Weide\" in Claude"), "het projectplan noemt het design system bij de huisstijl");
+  check(config.brand.colours.primary === "#1f5c8a" && config.brand.radius === "soft", "de configuratie neemt de kleuren en hoeken uit het design system over");
   const headings = (plan.match(/^## \d+\. /gm) ?? []).length;
   check(headings === 12, `het projectplan heeft twaalf kopjes (${headings})`);
   check(plan.includes("| Coördinator (`coordinator`) |") && plan.includes("P1: een vrijwilliger"), "het projectplan bevat de rollen en de regels");
@@ -383,10 +402,23 @@ try {
   await legacy.goto(`${index}#voorbereiden`);
   await legacy.reload();
   const legacyMeta = (await legacy.locator("a.part").filter({ hasText: "Deel A" }).locator(".part-meta").textContent())?.trim() ?? "";
-  check(legacyMeta.startsWith("2 van 7 klaar"), `de vinkjes van de oude voorbereidingspagina komen mee (${legacyMeta})`);
+  check(legacyMeta.startsWith("2 van 8 klaar"), `de vinkjes van de oude voorbereidingspagina komen mee (${legacyMeta})`);
   await legacy.goto(`${index}#voorbereiden-6`);
   check((await legacy.inputValue("#hp-why")).startsWith("Een rooster voor de stal.") && (await legacy.inputValue("#hp-count")) === "30" && (await legacy.inputValue("#hp-not")) === "Geen app.", "de oude halve pagina komt in de velden van deel B");
   await fresh.close();
+  const sevenContext = await browser.newContext({ locale: "nl-NL" });
+  const seven = await sevenContext.newPage();
+  await seven.goto(index);
+  await seven.evaluate(() => {
+    window.localStorage.clear();
+    window.localStorage.setItem("foundation-wizard-delen:v1", JSON.stringify({ version: 1, part: "voorbereiden", prep: { step: 7, done: { 1: true, 6: true, 7: true } }, live: { step: 0, done: {} } }));
+  });
+  await seven.reload();
+  check((((await seven.locator("#step-heading").textContent()) ?? "").trim()).startsWith("Stap 8 van 8: Klaar"), "een bewaarde stand van zeven stappen opent op Klaar, nu stap 8");
+  check((((await seven.locator("a.part").filter({ hasText: "Deel A" }).locator(".part-meta").textContent()) ?? "").trim()).startsWith("3 van 8 klaar"), "en houdt zijn drie vinkjes");
+  await seven.goto(`${index}#voorbereiden-7`);
+  check(!(await seven.getByLabel("Deze stap is klaar").isChecked()), "de nieuwe stap 7 staat niet vanzelf aangevinkt");
+  await sevenContext.close();
 
   /*
    * De feedbackpagina: vanaf de wizard bereikbaar, weigert leeg te versturen, en zet een issue klaar

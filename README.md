@@ -92,13 +92,22 @@ ook als download, plus `logo.svg` bij een eigen logo.
 
 | Pagina | Deel | Wat |
 |---|---|---|
-| Dag 1 | A. Voorbereiden | accounts, installeren, git, werkmap, het controlescript, je halve pagina; thuis, ongeveer 45 minuten |
-| | B. Je tool ontwerpen | acht stappen van projectbasis tot de startprompt |
+| Dag 1 | A. Voorbereiden | accounts, installeren, git, werkmap, het controlescript, je halve pagina, je huisstijl als design system in Claude; thuis, ongeveer een uur |
+| | B. Je tool ontwerpen | acht stappen van projectbasis tot de startprompt; in stap 6 lees je het blok uit je design system in |
 | | C. Op de dag: live zetten | acht stappen van Use this template tot werken via `release/next` |
 | Dag 2 | A. Vooraf | tool online, template bijwerken, Vercel CLI, Neon, de Claude Console, akkoord over gegevens, huiswerk |
 | | B. Dev en prod | variabelen per omgeving, een eigen database voor de laptop, previews met een eigen database, een ronde via `release/next`, migraties en terugzetten |
 | | C. AI ontwerpen | de toepassing, de gegevens, de vaste structuur, prompting, testgevallen, kosten en water |
 | | D. AI bouwen | de Playground met een scorekaart, een nieuwe functie, AI in de tool, onderhoud |
+
+**De huisstijl uit een design system.** In deel A, stap 7 maakt de deelnemer in Claude (Claude
+Design, nu in Claude zelf; het losse claude.ai/design sluit op 14 december 2026) een design system
+van de huisstijl van de organisatie, haalt het logo als SVG op, en vraagt met een vaste vraag één
+JSON-blok: `name`, de acht kleuren van het template, `radius` en `darkMode`. In deel B, stap 6 leest
+de wizard dat blok in (`parseDesignBlock`): hij zoekt het blok tussen de accolades, ook met tekst of
+code-fences eromheen, neemt alleen geldige waarden over, maakt van `round` zachte hoeken, en noemt
+wat hij liet liggen. Het projectplan noemt het design system bij de huisstijl. Schermen ontwerpen en
+merkletters horen bewust niet bij dag 1. De rooktest dekt de stap, het inlezen en het projectplan.
 
 Een deel openen kan via het adres: `index.html#voorbereiden`, `#ontwerpen`, `#live`, of een stap
 zoals `#live-3`. In de wizard van dag 1 wijzen labels "Dag 2" naar de stap van dag 2 waar een vraag
