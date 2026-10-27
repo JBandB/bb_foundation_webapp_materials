@@ -37,7 +37,7 @@ export function templateDir() {
   const dir = join(root, ".template");
   if (!existsSync(dir)) {
     const clone = spawnSync("git", ["clone", "--quiet", "--depth", "1", "--branch", pin.tag, pin.repo, dir], { stdio: "inherit" });
-    if (clone.status !== 0) throw new Error(`Het template ${pin.tag} ophalen lukte niet. Bestaat de tag op ${pin.repo}?`);
+    if (clone.status !== 0) throw new Error(`Het template ${pin.tag} ophalen lukte niet. Bestaat de tag op ${pin.repo}, en heb je leesrecht op die repo? Zie de README, Toegang tot het template.`);
   }
   const version = versionAt(dir);
   if (version !== wanted) throw new Error(`.template staat op v${version}, template.json noemt ${pin.tag}. Verwijder de map .template en draai opnieuw.`);
