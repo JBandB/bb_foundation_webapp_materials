@@ -1,7 +1,7 @@
 # Lesmateriaal bij BB_foundation_webapp
 
 De wizard en het materiaal van de training rond het template
-[BB_foundation_webapp](https://github.com/JBandB/bb_foundation_webapp): de wizard van dag 1, de
+[BB_foundation_webapp](https://github.com/bosenbrouwer/bb_foundation_webapp): de wizard van dag 1, de
 wizard van dag 2, de voorbereiding en de feedbackpagina. Alles in de huisstijl van Bos & Brouwer.
 Wat de wizard oplevert (configuratie, projectplan, checklist, startprompt) is neutraal en draagt geen
 merk; de rooktest bewijst dat.
@@ -53,6 +53,25 @@ Tegen een werkkopie van het template, voordat er een tag is:
 
 (In PowerShell: `$env:TEMPLATE_DIR = "..\bb_foundation_webapp"` en dan de opdracht.) Wijkt de versie
 af van `template.json`, dan zegt de test dat.
+
+## Toegang tot het template
+
+Het template staat in een afgeschermde repo. **Lokaal** haalt git hem op met je eigen GitHub-inlog;
+die moet leesrecht op de repo hebben, en de eerste keer vraagt Git Credential Manager om in te loggen.
+
+**De CI** gebruikt een deploy key: een SSH-sleutel die alleen deze ene repo kan lezen en aan geen
+persoon hangt. De publieke helft staat in het template onder Settings, Deploy keys (zonder
+schrijfrecht), de privéhelft hier als secret `TEMPLATE_DEPLOY_KEY`, twee keer: onder Actions en onder
+Dependabot, want een run op een Dependabot-PR krijgt alleen de secrets van Dependabot. De stap
+"Toegang tot het template" in `.github/workflows/ci.yml` zet hem neer en laat git het adres uit
+`template.json` via ssh ophalen. Een pull request vanuit een fork krijgt geen secrets en faalt op die
+stap; dat is de bedoeling.
+
+De sleutel vervangen (bij een lek, of als iemand met toegang tot de secrets vertrekt): maak een nieuw
+paar met `ssh-keygen -t ed25519 -N "" -C materials-ci -f materials-ci` in een map buiten de repo's,
+zet de publieke helft als deploy key op het template, de privéhelft in beide secrets
+(`gh secret set TEMPLATE_DEPLOY_KEY < materials-ci` en hetzelfde met `--app dependabot`), verwijder de
+oude deploy key en gooi de bestanden weg. De sleutel komt nooit in een chat, een commit of een log.
 
 ## Testen
 
